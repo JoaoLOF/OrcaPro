@@ -1,0 +1,86 @@
+import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
+import { useAuthStore } from "../stores/authStores";
+import { getSession } from "../services/supabase";
+
+import LoginScreen from "../screens/LoginScreen";
+import RegisterScreen from "../screens/RegisterScreen";
+import HomeScreen from "../screens/HomeScreen";
+
+export type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Home: undefined;
+  CreateBudget: undefined;
+  BudgetDetails: { budgetId: string };
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export default function Navigation() {
+  const { user, setUser } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      const session = await getSession();
+
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email!,
+          created_at: session.user.created_at,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao verificar sessão:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      >
+        {user ? (
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0A0E27",
+  },
+});
