@@ -3,11 +3,12 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { useAuthStore } from "../stores/authStores";
-import { getSession } from "../services/supabase";
-
+import { getSession } from "../services/userService";
+import ProfileSettingsScreen from "../screens/ProfileSettingsScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import HomeScreen from "../screens/HomeScreen";
+import CreateBudgetScreen from "../screens/CreateBudgetScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -15,6 +16,7 @@ export type RootStackParamList = {
   Home: undefined;
   CreateBudget: undefined;
   BudgetDetails: { budgetId: string };
+  ProfileSettings: undefined; // ← NOVO
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -64,6 +66,11 @@ export default function Navigation() {
         {user ? (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="CreateBudget" component={CreateBudgetScreen} />
+            <Stack.Screen
+              name="ProfileSettings"
+              component={ProfileSettingsScreen}
+            />
           </>
         ) : (
           <>

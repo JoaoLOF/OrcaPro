@@ -10,13 +10,31 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { fetchUserBudgets, logout } from "../services/supabase";
+import { fetchUserBudgets, logout } from "../services/userService";
 import { Budget, BudgetStatus } from "../types/budget";
+
+type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Home: undefined;
+  CreateBudget: undefined;
+  BudgetDetails: { budgetId: string };
+};
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Home"
+>;
+
+interface Props {
+  navigation: HomeScreenNavigationProp;
+}
 
 // Ícones SVG
 const PlusIcon = ({ size = 24, color = "#FFFFFF" }) => (
@@ -102,7 +120,26 @@ const ChevronRightIcon = ({ size = 20, color = "#64748B" }) => (
   </Svg>
 );
 
-export default function HomeScreen({ navigation }: any) {
+const SettingsIcon = ({ size = 20, color = "#FFFFFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle
+      cx="12"
+      cy="7"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M5 21C5 17.134 8.134 14 12 14C15.866 14 19 17.134 19 21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+export default function HomeScreen({ navigation }: Props) {
   const { user, logout: logoutStore } = useAuthStore();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,11 +182,18 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handleCreateBudget = () => {
+    console.log("🚀 Navegando para CreateBudget...");
     navigation.navigate("CreateBudget");
   };
 
   const handleBudgetPress = (budgetId: string) => {
+    console.log("📄 Navegando para BudgetDetails:", budgetId);
     navigation.navigate("BudgetDetails", { budgetId });
+  };
+
+  const handleSettings = () => {
+    console.log("⚙️ Navegando para ProfileSettings...");
+    navigation.navigate("ProfileSettings");
   };
 
   const handleLogout = async () => {
@@ -276,7 +320,7 @@ export default function HomeScreen({ navigation }: any) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <PlusIcon size={25} color="#FFFFFF" />
+          <PlusIcon size={20} color="#FFFFFF" />
           <Text style={styles.emptyButtonText}>Criar Orçamento</Text>
         </LinearGradient>
       </TouchableOpacity>
@@ -319,13 +363,22 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.greeting}>Olá, {user?.name}</Text>
             <Text style={styles.subtitle}>Gerencie seus orçamentos</Text>
           </View>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <LogoutIcon size={20} color="#EF4444" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={handleSettings}
+              activeOpacity={0.7}
+            >
+              <SettingsIcon size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <LogoutIcon size={20} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
         </View>
       </BlurView>
 
@@ -437,6 +490,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     color: "#94A3B8",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoutButton: {
     width: 44,

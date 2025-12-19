@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { loginWithEmail } from "../services/supabase";
+import { loginWithEmail } from "../services/userService";
 
 // Ícones SVG Minimalistas
 const LockIcon = ({ size = 20, color = "#64748B" }) => (
