@@ -117,7 +117,10 @@ export default function ProfileSettingsScreen({ navigation }: any) {
   const [primaryColor, setPrimaryColor] = useState("#3B82F6");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [estado, setEstado] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [cep, setCep] = useState("");
   const [website, setWebsite] = useState("");
   const [taxId, setTaxId] = useState("");
 
@@ -210,7 +213,10 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         primary_color: primaryColor,
         phone: phone.trim(),
         email: email.trim(),
-        address: address.trim(),
+        endereco: endereco.trim(),
+        cep: cep.trim(),
+        cidade: cidade.trim(),
+        estado: estado.trim(),
         website: website.trim(),
         tax_id: taxId.trim(),
       };
@@ -445,15 +451,48 @@ export default function ProfileSettingsScreen({ navigation }: any) {
 
               {/* Endereço */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>ENDEREÇO</Text>
+                <Text style={[styles.label]}>ENDEREÇO</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Rua, número, bairro, cidade - UF"
+                  placeholder="Rua, nº"
                   placeholderTextColor="#64748B"
-                  value={address}
-                  onChangeText={setAddress}
+                  value={endereco}
+                  onChangeText={setEndereco}
                   multiline
-                  numberOfLines={3}
+                  numberOfLines={1}
+                  textAlignVertical="top"
+                  editable={!saving}
+                />
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="CEP"
+                  placeholderTextColor="#64748B"
+                  value={cep}
+                  onChangeText={setCep}
+                  multiline
+                  numberOfLines={1}
+                  textAlignVertical="top"
+                  editable={!saving}
+                />
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Cidade"
+                  placeholderTextColor="#64748B"
+                  value={cidade}
+                  onChangeText={setCidade}
+                  multiline
+                  numberOfLines={1}
+                  textAlignVertical="top"
+                  editable={!saving}
+                />
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Estado"
+                  placeholderTextColor="#64748B"
+                  value={estado}
+                  onChangeText={setEstado}
+                  multiline
+                  numberOfLines={1}
                   textAlignVertical="top"
                   editable={!saving}
                 />
@@ -673,9 +712,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: "#E2E8F0",
+    marginBottom: 5,
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 40,
     paddingTop: 14,
     textAlignVertical: "top",
   },

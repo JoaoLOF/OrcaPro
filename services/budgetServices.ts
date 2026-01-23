@@ -1,8 +1,15 @@
 import { supabase } from "./supabase";
+import {
+  BudgetStatus,
+  BudgetItem,
+  Budget,
+  CreateBudgetData,
+  UpdateBudgetData,
+} from "../types/budget";
 
-/**
- * Cria um novo orçamento
- */
+/*
+ Cria um novo orçamento
+*/
 export const createBudgetWithItems = async (budgetData: CreateBudgetData) => {
   try {
     console.log("📝 Criando orçamento...", budgetData);
@@ -12,13 +19,15 @@ export const createBudgetWithItems = async (budgetData: CreateBudgetData) => {
       .from("budgets")
       .insert([
         {
-          nome: budgetData.client_name,
-          telefone: budgetData.client_phone,
-          email: budgetData.client_email || null,
-          title: budgetData.title || null,
-          description: budgetData.observations || null,
+          user_id: budgetData.created_by,
+          title: budgetData.title,
+          description: budgetData.description,
+          discount: budgetData.discount,
+          total_value: budgetData.total_value,
           status: budgetData.status,
-          user_id: budgetData.user_id,
+          created_at: budgetData.created_at,
+          updated_at: budgetData.updated_at,
+          client_id: budgetData.client_id,
         },
       ])
       .select()
@@ -36,7 +45,7 @@ export const createBudgetWithItems = async (budgetData: CreateBudgetData) => {
         quantity: item.quantity,
         unit_price: item.unit_price,
         total: item.total,
-        position: index,
+        created_at: budgetData.created_at,
       }));
 
       const { error: itemsError } = await supabase
@@ -69,7 +78,7 @@ export const fetchUserBudgetsWithItems = async (userId: string) => {
         `
         *,
         items:budget_items(*)
-      `
+      `,
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
@@ -97,7 +106,7 @@ export const fetchBudgetById = async (budgetId: string) => {
         `
         *,
         items:budget_items(*)
-      `
+      `,
       )
       .eq("id", budgetId)
       .single();
@@ -119,7 +128,7 @@ export const fetchBudgetById = async (budgetId: string) => {
 
 export const updateBudget = async (
   budgetId: string,
-  data: UpdateBudgetData
+  data: UpdateBudgetData,
 ) => {
   try {
     const { data: updated, error } = await supabase
@@ -168,7 +177,7 @@ export const deleteBudget = async (budgetId: string) => {
 
 export const updateBudgetStatus = async (
   budgetId: string,
-  status: BudgetStatus
+  status: BudgetStatus,
 ) => {
   try {
     const { data, error } = await supabase

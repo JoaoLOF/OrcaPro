@@ -1,15 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { LoginCredentials, AuthResponse } from "../types/auth";
-import {
-  CreateBudgetData,
-  UpdateBudgetData,
-  BudgetStatus,
-} from "../types/budget";
 import { supabase } from "./supabase";
+import {
+  CreateUsuarioData,
+  UpdateUsuarioData,
+  Usuario,
+} from "../types/usuario";
 
-/**
- * Realiza login com email e senha
- */
+/* 
+  Realiza login com email e senha
+*/
 export const loginWithEmail = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
@@ -49,9 +49,9 @@ export const loginWithEmail = async (
   }
 };
 
-/**
- * Registra um novo usuário
- */
+/*
+ Registra um novo usuário
+*/
 export const registerWithEmail = async (data: {
   name: string;
   email: string;
@@ -111,9 +111,9 @@ export const registerWithEmail = async (data: {
   }
 };
 
-/**
- * Verifica se há uma sessão ativa
- */
+/*
+ Verifica se há uma sessão ativa
+*/
 export const getSession = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -125,9 +125,9 @@ export const getSession = async () => {
   }
 };
 
-/**
- * Busca orçamentos do usuário
- */
+/*
+ Busca orçamentos do usuário
+*/
 export const fetchUserBudgets = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -151,9 +151,9 @@ export const fetchUserBudgets = async (userId: string) => {
   }
 };
 
-/**
- * Faz logout do usuário
- */
+/*
+ Faz logout do usuário
+*/
 export const logout = async () => {
   try {
     const { error } = await supabase.auth.signOut();
@@ -165,9 +165,9 @@ export const logout = async () => {
   }
 };
 
-/**
- * Atualiza ou cria o perfil do usuário
- */
+/*
+ Atualiza ou cria o perfil do usuário
+*/
 export const updateUserProfile = async (profileData: UpdateProfileData) => {
   try {
     console.log("💾 Salvando perfil...", profileData);
@@ -215,9 +215,9 @@ export const updateUserProfile = async (profileData: UpdateProfileData) => {
   }
 };
 
-/**
- * Busca o perfil do usuário
- */
+/*
+ Busca o perfil do usuário
+*/
 export const fetchUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase

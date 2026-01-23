@@ -9,14 +9,17 @@ import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import HomeScreen from "../screens/HomeScreen";
 import CreateBudgetScreen from "../screens/CreateBudgetScreen";
+import CreateClientScreen from "../screens/CreateClientScreen";
+import BudgetDetailsScreen from "../screens/BudgetDetailsScreen";
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
   CreateBudget: undefined;
+  CreateClient: undefined;
   BudgetDetails: { budgetId: string };
-  ProfileSettings: undefined; // ← NOVO
+  ProfileSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -68,9 +71,14 @@ export default function Navigation() {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="CreateBudget" component={CreateBudgetScreen} />
             <Stack.Screen
+              name="BudgetDetails"
+              component={BudgetDetailsScreen}
+            />
+            <Stack.Screen
               name="ProfileSettings"
               component={ProfileSettingsScreen}
             />
+            <Stack.Screen name="CreateClient" component={CreateClientScreen} />
           </>
         ) : (
           <>

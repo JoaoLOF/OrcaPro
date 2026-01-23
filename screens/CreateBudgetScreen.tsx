@@ -1,5 +1,4 @@
-// src/screens/CreateBudgetScreen.tsx - Design Premium
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,13 +8,18 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
 import { createBudgetWithItems } from "../services/budgetServices";
-import { BudgetStatus } from "../types/budget";
+import { fetchUserClients } from "../services/clientServices";
+import { BudgetStatus, Budget } from "../types/budget";
+import { Client } from "../types/client";
+import { unmountComponentAtNodeAndRemoveContainer } from "react-native/types_generated/Libraries/ReactNative/RendererImplementation";
 
 // Ícones SVG
 const BackIcon = ({ size = 24, color = "#FFFFFF" }) => (
@@ -152,9 +156,52 @@ const SaveIcon = ({ size = 20, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const SearchIcon = ({ size = 20, color = "#64748B" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle
+      cx="11"
+      cy="11"
+      r="8"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M21 21L16.65 16.65"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+const UsersIcon = ({ size = 20, color = "#3B82F6" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="9" cy="7" r="4" stroke={color} strokeWidth="2" />
+    <Path
+      d="M23 21V19C23 18.0 22.5 17.2 22 16.5M16 3.5C17 4 18 5 18 7C18 9 17 10 16 10.5"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export default function CreateBudgetScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [saving, setSaving] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Estados do formulário
   const [clientName, setClientName] = useState("");
@@ -165,6 +212,47 @@ export default function CreateBudgetScreen({ navigation }: any) {
   const [items, setItems] = useState<any[]>([]);
 
   const currentDate = new Date().toLocaleDateString("pt-BR");
+
+  // Carregar clientes ao abrir o modal
+  useEffect(() => {
+    if (showClientModal && user) {
+      loadClients();
+    }
+  }, [showClientModal, user]);
+
+  const loadClients = async () => {
+    if (!user) return;
+
+    setLoadingClients(true);
+    try {
+      const response = await fetchUserClients(user.id);
+      if (response.error) {
+        Alert.alert("Erro", response.error);
+      } else {
+        setClients(response.clients);
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Erro ao carregar clientes");
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const selectClient = (client: Client) => {
+    setClientName(client.name);
+    setClientPhone(client.phone || "");
+    setClientEmail(client.email || "");
+    setShowClientModal(false);
+    setSearchQuery("");
+  };
+
+  const filteredClients = clients.filter(
+    (client) =>
+      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.email &&
+        client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (client.phone && client.phone.includes(searchQuery)),
+  );
 
   const addItem = () => {
     setItems([
@@ -208,7 +296,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
           return updated;
         }
         return item;
-      })
+      }),
     );
   };
 
@@ -246,20 +334,25 @@ export default function CreateBudgetScreen({ navigation }: any) {
     setSaving(true);
 
     try {
-      const budgetData = {
-        nome: clientName,
-        telefone: clientPhone,
-        email: clientEmail || undefined,
+      const budgetData: Budget = {
+        user_id: user.id,
         title: budgetTitle || undefined,
-        observations: observations || undefined,
+        description: observations || undefined,
         status: isDraft ? BudgetStatus.DRAFT : BudgetStatus.PENDING,
+        discount: 0,
+        total_value: calculateTotal(),
+        created_at: user.created_at,
+        updated_at: user.created_at,
+
+        client_name: clientName,
+        client_phone: clientPhone,
+        client_email: clientEmail || undefined,
         created_by: user.id,
         items: items.map((item, index) => ({
           name: item.name,
           quantity: parseFloat(item.quantity) || 0,
           unit_price: parseFloat(item.unitPrice) || 0,
           total: item.total,
-          position: index,
         })),
       };
 
@@ -275,7 +368,9 @@ export default function CreateBudgetScreen({ navigation }: any) {
         isDraft
           ? "Rascunho salvo com sucesso!"
           : "Orçamento criado com sucesso!",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
+        console.log("🚀 Navegando para HomeScreen...")[
+          { text: "OK", onPress: () => navigation.goBack() }
+        ],
       );
     } catch (error) {
       Alert.alert("Erro", "Erro ao salvar orçamento. Tente novamente.");
@@ -327,14 +422,32 @@ export default function CreateBudgetScreen({ navigation }: any) {
                   <UserIcon size={16} color="#94A3B8" />
                   <Text style={styles.label}>NOME COMPLETO *</Text>
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: João da Silva"
-                  placeholderTextColor="#64748B"
-                  value={clientName}
-                  onChangeText={setClientName}
-                  editable={!saving}
-                />
+                <View style={styles.clientInputRow}>
+                  <TextInput
+                    style={[styles.input, styles.clientInput]}
+                    placeholder="Ex: João da Silva"
+                    placeholderTextColor="#64748B"
+                    value={clientName}
+                    onChangeText={setClientName}
+                    editable={!saving}
+                  />
+                  <TouchableOpacity
+                    style={styles.searchClientButton}
+                    onPress={() => setShowClientModal(true)}
+                    activeOpacity={0.7}
+                  >
+                    <UsersIcon size={20} color="#3B82F6" />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("CreateClient")}
+                  activeOpacity={0.7}
+                  style={styles.addClientHint}
+                >
+                  <Text style={styles.addClientText}>
+                    + Cadastrar novo cliente
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
@@ -571,6 +684,97 @@ export default function CreateBudgetScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
       </BlurView>
+
+      {/* Modal de Seleção de Cliente */}
+      <Modal
+        visible={showClientModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowClientModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} tint="dark" style={styles.modalBlur}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Selecionar Cliente</Text>
+                <TouchableOpacity
+                  onPress={() => setShowClientModal(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Busca */}
+              <View style={styles.searchContainer}>
+                <SearchIcon size={20} color="#64748B" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar cliente..."
+                  placeholderTextColor="#64748B"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+
+              {/* Lista de Clientes */}
+              {loadingClients ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#3B82F6" />
+                </View>
+              ) : filteredClients.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {searchQuery
+                      ? "Nenhum cliente encontrado"
+                      : "Nenhum cliente cadastrado"}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    onPress={() => {
+                      setShowClientModal(false);
+                      navigation.navigate("CreateClient");
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.emptyButtonText}>
+                      + Cadastrar Cliente
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredClients}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.clientItem}
+                      onPress={() => selectClient(item)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.clientItemContent}>
+                        <Text style={styles.clientItemName}>{item.name}</Text>
+                        {item.phone && (
+                          <Text style={styles.clientItemDetail}>
+                            {item.phone}
+                          </Text>
+                        )}
+                        {item.email && (
+                          <Text style={styles.clientItemDetail}>
+                            {item.email}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.clientList}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
+            </View>
+          </BlurView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -849,5 +1053,128 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  clientInputRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  clientInput: {
+    flex: 1,
+  },
+  searchClientButton: {
+    width: 50,
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addClientHint: {
+    marginTop: 8,
+  },
+  addClientText: {
+    fontSize: 13,
+    color: "#60A5FA",
+    fontWeight: "600",
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalBlur: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  modalContent: {
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  modalClose: {
+    fontSize: 24,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.2)",
+    paddingHorizontal: 16,
+    margin: 20,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    fontSize: 15,
+    color: "#E2E8F0",
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 15,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  emptyButton: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.3)",
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#60A5FA",
+  },
+  clientList: {
+    maxHeight: 400,
+  },
+  clientItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  clientItemContent: {
+    gap: 4,
+  },
+  clientItemName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  clientItemDetail: {
+    fontSize: 13,
+    color: "#94A3B8",
   },
 });

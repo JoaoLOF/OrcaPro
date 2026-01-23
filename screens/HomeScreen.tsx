@@ -173,7 +173,7 @@ export default function HomeScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       loadBudgets();
-    }, [user])
+    }, [user]),
   );
 
   const onRefresh = () => {
