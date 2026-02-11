@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { registerWithEmail } from "../services/supabase";
+import { UserService } from "../services/userService";
 import { useAuthStore } from "../stores/authStore";
 import {
   ShieldIcon,
@@ -24,6 +24,8 @@ import {
   EyeOffIcon,
   UserIcon,
 } from "../components/Icons";
+
+const userService = new UserService();
 
 export default function RegisterScreen({ navigation }: any) {
   const [name, setName] = useState("");
@@ -85,7 +87,7 @@ export default function RegisterScreen({ navigation }: any) {
     setLoading(true);
 
     try {
-      const response = await registerWithEmail({
+      const response = await userService.registerWithEmail({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
@@ -98,7 +100,7 @@ export default function RegisterScreen({ navigation }: any) {
         ) {
           Alert.alert(
             "E-mail já cadastrado",
-            "Este e-mail já está em uso. Tente fazer login ou use outro e-mail."
+            "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.",
           );
         } else {
           Alert.alert("Erro ao criar conta", response.error);
@@ -112,7 +114,7 @@ export default function RegisterScreen({ navigation }: any) {
               text: "OK",
               onPress: () => navigation.navigate("Login"),
             },
-          ]
+          ],
         );
       }
     } catch (err) {

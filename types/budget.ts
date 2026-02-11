@@ -19,16 +19,14 @@ export interface BudgetItem {
 export interface Budget {
   id?: string;
   user_id: string;
-  title?: string;
+  title: string;
   description?: string;
   discount?: string;
-  total_value?: number;
+  total_value: number;
   status: BudgetStatus;
-  created_by: string;
   created_at?: string;
   updated_at: string;
-  client_id: string;
-  items?: BudgetItem[];
+  client_id?: string;
 }
 
 export interface CreateBudgetData {

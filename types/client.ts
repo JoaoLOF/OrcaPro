@@ -2,16 +2,15 @@
 
 export interface Client {
   id: string;
-  profile_id: string;
-  name: string;
+  usuario_id: string;
+  nome: string;
+  cpf_cnpj?: string;
   email?: string | null;
-  phone?: string | null;
-  address_state?: string | null;
-  address_city?: string | null;
-  address_street?: string | null;
-  address_number?: string | null;
-  created_at: string;
-  updated_at: string;
+  telefone?: string | null;
+  tags?: string;
+  ativo?: string;
+  criado_em?: string;
+  atualizado?: string;
 }
 
 export interface CreateClientData {

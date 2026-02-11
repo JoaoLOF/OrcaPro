@@ -15,9 +15,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { createBudgetWithItems } from "../services/budgetServices";
-import { fetchUserClients } from "../services/clientServices";
-import { BudgetStatus, Budget } from "../types/budget";
+import { BudgetService } from "../services/budgetServices";
+import { ClientService } from "../services/clientServices";
+import { BudgetStatus, Budget, BudgetItem } from "../types/budget";
 import { Client } from "../types/client";
 import { unmountComponentAtNodeAndRemoveContainer } from "react-native/types_generated/Libraries/ReactNative/RendererImplementation";
 
@@ -195,6 +195,9 @@ const UsersIcon = ({ size = 20, color = "#3B82F6" }) => (
   </Svg>
 );
 
+const budgetService = new BudgetService();
+const clientService = new ClientService();
+
 export default function CreateBudgetScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [saving, setSaving] = useState(false);
@@ -225,7 +228,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
     setLoadingClients(true);
     try {
-      const response = await fetchUserClients(user.id);
+      const response = await clientService.fetchUserClients(user.id);
       if (response.error) {
         Alert.alert("Erro", response.error);
       } else {
@@ -261,7 +264,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
         id: Date.now().toString(),
         name: "",
         quantity: "",
-        unitPrice: "",
+        unit_price: "",
         total: 0,
       },
     ]);
@@ -279,23 +282,24 @@ export default function CreateBudgetScreen({ navigation }: any) {
   };
 
   const updateItem = (id: string, field: string, value: string) => {
-    setItems(
-      items.map((item) => {
-        if (item.id === id) {
-          const updated = { ...item, [field]: value };
+    setItems((prevItems) =>
+      prevItems.map((item) => {
+        if (item.id !== id) return item;
 
-          if (field === "quantity" || field === "unitPrice") {
-            const qty =
-              parseFloat(field === "quantity" ? value : updated.quantity) || 0;
-            const price =
-              parseFloat(field === "unitPrice" ? value : updated.unitPrice) ||
-              0;
-            updated.total = qty * price;
-          }
+        // mantém os valores como string para o input
+        const updatedItem = {
+          ...item,
+          [field]: value,
+        };
 
-          return updated;
-        }
-        return item;
+        // converte SOMENTE para cálculo
+        const quantity = Number(updatedItem.quantity);
+        const unit_price = Number(updatedItem.unit_price);
+
+        return {
+          ...updatedItem,
+          total: quantity > 0 && unit_price > 0 ? quantity * unit_price : 0,
+        };
       }),
     );
   };
@@ -338,42 +342,29 @@ export default function CreateBudgetScreen({ navigation }: any) {
         user_id: user.id,
         title: budgetTitle || undefined,
         description: observations || undefined,
-        status: isDraft ? BudgetStatus.DRAFT : BudgetStatus.PENDING,
         discount: 0,
         total_value: calculateTotal(),
+        status: isDraft ? BudgetStatus.DRAFT : BudgetStatus.PENDING,
+        created_by: user.id,
         created_at: user.created_at,
         updated_at: user.created_at,
-
-        client_name: clientName,
-        client_phone: clientPhone,
-        client_email: clientEmail || undefined,
-        created_by: user.id,
-        items: items.map((item, index) => ({
-          name: item.name,
-          quantity: parseFloat(item.quantity) || 0,
-          unit_price: parseFloat(item.unitPrice) || 0,
-          total: item.total,
-        })),
       };
 
-      const response = await createBudgetWithItems(budgetData);
+      const response = await budgetService.createBudgetWithItems(
+        budgetData,
+        items,
+      );
 
       if (response.error) {
         Alert.alert("Erro", response.error);
         return;
       }
-
+      navigation.navigate("Home");
+    } catch (error: any) {
       Alert.alert(
-        "Sucesso",
-        isDraft
-          ? "Rascunho salvo com sucesso!"
-          : "Orçamento criado com sucesso!",
-        console.log("🚀 Navegando para HomeScreen...")[
-          { text: "OK", onPress: () => navigation.goBack() }
-        ],
+        "Erro",
+        error?.message || "Erro ao salvar orçamento. Tente novamente.",
       );
-    } catch (error) {
-      Alert.alert("Erro", "Erro ao salvar orçamento. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -571,9 +562,9 @@ export default function CreateBudgetScreen({ navigation }: any) {
                       style={styles.input}
                       placeholder="R$ 0,00"
                       placeholderTextColor="#64748B"
-                      value={item.unitPrice}
+                      value={item.unit_price}
                       onChangeText={(value) =>
-                        updateItem(item.id, "unitPrice", value)
+                        updateItem(item.id, "unit_price", value)
                       }
                       keyboardType="numeric"
                       editable={!saving}

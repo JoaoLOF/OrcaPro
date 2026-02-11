@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { loginWithEmail } from "../services/userService";
+import { UserService } from "../services/userService";
 
 // Ícones SVG Minimalistas
 const LockIcon = ({ size = 20, color = "#64748B" }) => (
@@ -117,6 +117,8 @@ const ShieldIcon = ({ size = 32, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const userService = new UserService();
+
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -158,7 +160,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       console.log("🔐 Iniciando login...", { email });
 
-      const response = await loginWithEmail({
+      const response = await userService.loginWithEmail({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -179,7 +181,7 @@ export default function LoginScreen({ navigation }: any) {
 
         // O Navigation detectará a mudança e redirecionará automaticamente
         console.log(
-          "🚀 Usuário definido no store, navegação automática ativada"
+          "🚀 Usuário definido no store, navegação automática ativada",
         );
       } else {
         console.warn("⚠️ Resposta sem user e sem error");
@@ -189,7 +191,7 @@ export default function LoginScreen({ navigation }: any) {
       console.error("💥 Erro fatal no login:", error);
       Alert.alert(
         "Erro",
-        error?.message || "Erro inesperado. Tente novamente."
+        error?.message || "Erro inesperado. Tente novamente.",
       );
     } finally {
       setLoading(false);

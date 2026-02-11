@@ -15,13 +15,9 @@ import { RouteProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle } from "react-native-svg";
-import {
-  fetchBudgetById,
-  updateBudget,
-  deleteBudget,
-  updateBudgetStatus,
-} from "../services/supabase";
+import { BudgetService } from "../services/budgetServices";
 import { Budget, BudgetStatus } from "../types/budget";
+import { supabase } from "../services/supabase";
 
 type RootStackParamList = {
   Home: undefined;
@@ -175,6 +171,8 @@ const MailIcon = ({ size = 16, color = "#94A3B8" }) => (
   </Svg>
 );
 
+const budgetService = new BudgetService();
+
 export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const { budgetId } = route.params;
 
@@ -191,6 +189,12 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const [observations, setObservations] = useState("");
   const [status, setStatus] = useState<BudgetStatus>(BudgetStatus.PENDING);
 
+  const {
+    data: budgetItems,
+    error,
+  } = (async) =>
+    supabase.from("budget_items").select("*").eq("budget_id", budgetId);
+
   useEffect(() => {
     loadBudget();
   }, [budgetId]);
@@ -198,11 +202,12 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const loadBudget = async () => {
     setLoading(true);
     try {
-      const response = await fetchBudgetById(budgetId);
+      const response = await budgetService.fetchBudgetById(budgetId);
+      console.log("📦 Budget retornado:", response);
 
       if (response.error) {
         Alert.alert("Erro", response.error);
-        navigation.goBack();
+        setLoading(false);
         return;
       }
 
@@ -217,7 +222,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       }
     } catch (error) {
       Alert.alert("Erro", "Erro ao carregar orçamento");
-      navigation.goBack();
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -239,7 +244,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
     setSaving(true);
 
     try {
-      const response = await updateBudget(budget.id, {
+      const response = await budgetService.updateBudget(budget.id, {
         title: title.trim(),
         client_name: clientName.trim(),
         client_phone: clientPhone.trim(),
@@ -274,7 +279,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await deleteBudget(budgetId);
+              const response = await budgetService.deleteBudget(budgetId);
 
               if (response.error) {
                 Alert.alert("Erro", response.error);
@@ -297,7 +302,10 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
     if (!budget) return;
 
     try {
-      const response = await updateBudgetStatus(budget.id, newStatus);
+      const response = await budgetService.updateBudgetStatus(
+        budget.id,
+        newStatus,
+      );
 
       if (response.error) {
         Alert.alert("Erro", response.error);
@@ -610,10 +618,11 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         {/* Items Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📦 Itens do Orçamento</Text>
+
           <BlurView intensity={15} tint="dark" style={styles.card}>
             <View style={styles.cardInner}>
-              {budget.items && budget.items.length > 0 ? (
-                budget.items.map((item, index) => (
+              {budgetItems && budgetItems.length > 0 ? (
+                budgetItems.map((item, index) => (
                   <View key={item.id} style={styles.itemRow}>
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName}>{item.name}</Text>
@@ -621,6 +630,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                         {item.quantity}x {formatCurrency(item.unit_price)}
                       </Text>
                     </View>
+
                     <Text style={styles.itemTotal}>
                       {formatCurrency(item.total)}
                     </Text>

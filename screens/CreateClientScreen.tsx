@@ -14,7 +14,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { createClient } from "../services/clientServices";
+import { ClientService } from "../services/clientServices";
+import { Client } from "../types/client";
 
 // Ícones SVG
 const BackIcon = ({ size = 24, color = "#FFFFFF" }) => (
@@ -90,18 +91,16 @@ const CheckIcon = ({ size = 20, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const clientService = new ClientService();
+
 export default function CreateClientScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [saving, setSaving] = useState(false);
 
   // Estados do formulário
-  const [name, setName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [state, setState] = useState("");
-  const [city, setCity] = useState("");
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
 
   const formatPhone = (text: string) => {
     const cleaned = text.replace(/\D/g, "");
@@ -120,7 +119,7 @@ export default function CreateClientScreen({ navigation }: any) {
       return;
     }
 
-    if (!name.trim()) {
+    if (!nome.trim()) {
       Alert.alert("Atenção", "Por favor, informe o nome do cliente");
       return;
     }
@@ -130,13 +129,14 @@ export default function CreateClientScreen({ navigation }: any) {
     try {
       const clientData = {
         usuario_id: user.id,
-        nome: name.trim(),
-        email: email.trim() || null,
-        telefone: phone.trim() || null,
+        nome: nome,
+        email: email,
+        telefone: phone,
+        criado_em: user.created_at,
       };
 
       console.log(user.id);
-      const response = await createClient(clientData);
+      const response = await clientService.createClient(clientData);
 
       if (response.error) {
         Alert.alert("Erro", response.error);
@@ -200,8 +200,8 @@ export default function CreateClientScreen({ navigation }: any) {
                   style={styles.input}
                   placeholder="Ex: João da Silva"
                   placeholderTextColor="#64748B"
-                  value={name}
-                  onChangeText={setName}
+                  value={nome}
+                  onChangeText={setNome}
                   editable={!saving}
                 />
               </View>
@@ -236,68 +236,6 @@ export default function CreateClientScreen({ navigation }: any) {
                   onChangeText={(text) => setPhone(formatPhone(text))}
                   keyboardType="phone-pad"
                   maxLength={15}
-                  editable={!saving}
-                />
-              </View>
-            </View>
-          </BlurView>
-        </View>
-
-        {/* Seção: Endereço */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Endereço (Opcional)</Text>
-
-          <BlurView intensity={15} tint="dark" style={styles.card}>
-            <View style={styles.cardInner}>
-              <View style={styles.inputRow}>
-                <View style={[styles.inputGroup, styles.inputHalf]}>
-                  <Text style={styles.label}>ESTADO</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ex: MG"
-                    placeholderTextColor="#64748B"
-                    value={state}
-                    onChangeText={setState}
-                    autoCapitalize="characters"
-                    maxLength={2}
-                    editable={!saving}
-                  />
-                </View>
-
-                <View style={[styles.inputGroup, styles.inputHalf]}>
-                  <Text style={styles.label}>CIDADE</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ex: Belo Horizonte"
-                    placeholderTextColor="#64748B"
-                    value={city}
-                    onChangeText={setCity}
-                    editable={!saving}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>RUA</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: Rua das Flores"
-                  placeholderTextColor="#64748B"
-                  value={street}
-                  onChangeText={setStreet}
-                  editable={!saving}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>NÚMERO</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 123"
-                  placeholderTextColor="#64748B"
-                  value={number}
-                  onChangeText={setNumber}
-                  keyboardType="numeric"
                   editable={!saving}
                 />
               </View>

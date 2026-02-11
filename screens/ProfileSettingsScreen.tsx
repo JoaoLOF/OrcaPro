@@ -16,7 +16,8 @@ import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "../stores/authStores";
-import { fetchUserProfile, updateUserProfile } from "../services/userService";
+import { UserService } from "../services/userService";
+import UpdateProfileData from "../types/profile";
 
 // Ícones SVG
 const UserIcon = ({ size = 20, color = "#64748B" }) => (
@@ -105,6 +106,8 @@ const CheckIcon = ({ size = 20, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const userService = new UserService();
+
 export default function ProfileSettingsScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
@@ -112,10 +115,10 @@ export default function ProfileSettingsScreen({ navigation }: any) {
 
   // Estados do formulário
   const [userName, setUserName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [empresa, setEmpresa] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#3B82F6");
-  const [phone, setPhone] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [endereco, setEndereco] = useState("");
   const [estado, setEstado] = useState("");
@@ -145,14 +148,14 @@ export default function ProfileSettingsScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const response = await fetchUserProfile(user.id);
+      const response = await userService.fetchUserProfile(user.id);
 
       if (response.profile) {
         setUserName(response.profile.user_name || "");
-        setCompanyName(response.profile.company_name || "");
-        setLogoUri(response.profile.logo_url || null);
+        setEmpresa(response.profile.empresa || "");
+        setAvatarUrl(response.profile.avatar_url || null);
         setPrimaryColor(response.profile.primary_color || "#3B82F6");
-        setPhone(response.profile.phone || "");
+        setTelefone(response.profile.telefone || "");
         setEmail(response.profile.email || user.email || "");
         setAddress(response.profile.address || "");
         setWebsite(response.profile.website || "");
@@ -172,7 +175,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
     if (!permissionResult.granted) {
       Alert.alert(
         "Permissão necessária",
-        "Precisamos de permissão para acessar suas fotos"
+        "Precisamos de permissão para acessar suas fotos",
       );
       return;
     }
@@ -185,7 +188,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setLogoUri(result.assets[0].uri);
+      setAvatarUrl(result.assets[0].url);
     }
   };
 
@@ -197,7 +200,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
       return;
     }
 
-    if (!companyName.trim()) {
+    if (!empresa.trim()) {
       Alert.alert("Atenção", "Por favor, informe o nome da empresa");
       return;
     }
@@ -208,10 +211,10 @@ export default function ProfileSettingsScreen({ navigation }: any) {
       const profileData = {
         user_id: user.id,
         user_name: userName.trim(),
-        company_name: companyName.trim(),
-        logo_url: logoUri,
-        primary_color: primaryColor,
-        phone: phone.trim(),
+        empresa: empresa.trim(),
+        avatar_url: avatarUrl,
+        //primary_color: primaryColor,
+        telefone: telefone.trim(),
         email: email.trim(),
         endereco: endereco.trim(),
         cep: cep.trim(),
@@ -221,7 +224,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         tax_id: taxId.trim(),
       };
 
-      const response = await updateUserProfile(profileData);
+      const response = await UseService.updateUserProfile(profileData);
 
       if (response.error) {
         Alert.alert("Erro", response.error);
@@ -338,31 +341,34 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                   style={styles.input}
                   placeholder="Digite o nome da sua empresa"
                   placeholderTextColor="#64748B"
-                  value={companyName}
-                  onChangeText={setCompanyName}
+                  value={empresa}
+                  onChangeText={setEmpresa}
                   editable={!saving}
                 />
               </View>
 
-              {/* Logo */}
+              {/* avatar */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
                   <ImageIcon size={16} color="#94A3B8" />
-                  <Text style={styles.label}>LOGO DA EMPRESA</Text>
+                  <Text style={styles.label}>AVATAR DA EMPRESA</Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.logoButton}
+                  style={styles.avatarButton}
                   onPress={pickImage}
                   activeOpacity={0.7}
                   disabled={saving}
                 >
-                  {logoUri ? (
-                    <Image source={{ uri: logoUri }} style={styles.logoImage} />
+                  {avatarUrl ? (
+                    <Image
+                      source={{ url: avatarUrl }}
+                      style={styles.avatarImage}
+                    />
                   ) : (
-                    <View style={styles.logoPlaceholder}>
+                    <View style={styles.avatarPlaceholder}>
                       <ImageIcon size={32} color="#64748B" />
-                      <Text style={styles.logoPlaceholderText}>
-                        Adicionar Logo
+                      <Text style={styles.avatarPlaceholderText}>
+                        Adicionar avatar
                       </Text>
                     </View>
                   )}
@@ -427,8 +433,8 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                   style={styles.input}
                   placeholder="(00) 00000-0000"
                   placeholderTextColor="#64748B"
-                  value={phone}
-                  onChangeText={setPhone}
+                  value={telefone}
+                  onChangeText={setTelefone}
                   keyboardType="phone-pad"
                   editable={!saving}
                 />
@@ -541,11 +547,14 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                {logoUri && (
-                  <Image source={{ uri: logoUri }} style={styles.previewLogo} />
+                {avatarUrl && (
+                  <Image
+                    source={{ url: avatarUrl }}
+                    style={styles.previewAvatar}
+                  />
                 )}
-                <Text style={styles.previewCompanyName}>
-                  {companyName || "Nome da Empresa"}
+                <Text style={styles.previewempresa}>
+                  {empresa || "Nome da Empresa"}
                 </Text>
               </LinearGradient>
               <View style={styles.previewBody}>
@@ -725,7 +734,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: "italic",
   },
-  logoButton: {
+  avatarButton: {
     width: "100%",
     height: 120,
     borderRadius: 12,
@@ -734,18 +743,18 @@ const styles = StyleSheet.create({
     borderColor: "rgba(148, 163, 184, 0.3)",
     overflow: "hidden",
   },
-  logoImage: {
+  avatarImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  logoPlaceholder: {
+  avatarPlaceholder: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(15, 23, 42, 0.4)",
   },
-  logoPlaceholderText: {
+  avatarPlaceholderText: {
     marginTop: 8,
     fontSize: 14,
     color: "#94A3B8",
@@ -798,13 +807,13 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
   },
-  previewLogo: {
+  previewAvatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
     marginBottom: 12,
   },
-  previewCompanyName: {
+  previewempresa: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#FFFFFF",

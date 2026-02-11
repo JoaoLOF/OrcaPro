@@ -10,8 +10,15 @@ export interface UserProfile {
 
 export interface UpdateProfileData {
   id?: string;
-  name?: string;
-  phone?: string;
-  created_at?: string;
+  nome_completo?: string;
+  email?: string;
+  telefone?: string;
+  avatar_url?: string;
+  empresa?: string;
+  cnpj?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
   updated_at?: string;
 }

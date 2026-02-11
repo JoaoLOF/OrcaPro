@@ -1,4 +1,4 @@
-// src/screens/HomeScreen.tsx - Design Premium Aprimorado
+// src/screens/HomeScreen.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -16,8 +16,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
-import { fetchUserBudgets, logout } from "../services/userService";
+import { UserService } from "../services/userService";
 import { Budget, BudgetStatus } from "../types/budget";
+import { BudgetService } from "../services/budgetServices";
 
 type RootStackParamList = {
   Login: undefined;
@@ -139,6 +140,9 @@ const SettingsIcon = ({ size = 20, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const userService = new UserService();
+const budgetService = new BudgetService();
+
 export default function HomeScreen({ navigation }: Props) {
   const { user, logout: logoutStore } = useAuthStore();
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -151,7 +155,7 @@ export default function HomeScreen({ navigation }: Props) {
     if (!isRefreshing) setLoading(true);
 
     try {
-      const response = await fetchUserBudgets(user.id);
+      const response = await budgetService.fetchUserBudgetsWithItems(user.id);
 
       if (response.error) {
         Alert.alert("Erro", response.error);
@@ -203,7 +207,7 @@ export default function HomeScreen({ navigation }: Props) {
         text: "Sair",
         style: "destructive",
         onPress: async () => {
-          await logout();
+          await userService.logout();
           logoutStore();
         },
       },
@@ -654,6 +658,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+
   fab: {
     width: 64,
     height: 64,
