@@ -99,16 +99,33 @@ export class BudgetService {
     }
   }
 
+  async fetchBudgetItemsByBudgetId(budgetId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("budget_items")
+        .select("*")
+        .eq("budget_id", budgetId)
+        .order("name");
+
+      console.log("Itens: ", data);
+
+      if (error) {
+        console.error("Erro ao buscar itens do orçamento:", error);
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      throw err;
+    }
+  }
+
   async fetchUserBudgetsWithItems(userId: string) {
     try {
       const { data, error } = await supabase
         .from("budgets")
-        .select(
-          `
-        *,
-        items:budget_items(*)
-      `,
-        )
+        .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 

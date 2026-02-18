@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { useAuthStore } from "../stores/authStores";
-import { getSession } from "../services/userService";
+import { UserService } from "../services/userService";
 import ProfileSettingsScreen from "../screens/ProfileSettingsScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -11,6 +11,8 @@ import HomeScreen from "../screens/HomeScreen";
 import CreateBudgetScreen from "../screens/CreateBudgetScreen";
 import CreateClientScreen from "../screens/CreateClientScreen";
 import BudgetDetailsScreen from "../screens/BudgetDetailsScreen";
+
+const userService = new UserService();
 
 export type RootStackParamList = {
   Login: undefined;
@@ -34,7 +36,7 @@ export default function Navigation() {
 
   const checkSession = async () => {
     try {
-      const session = await getSession();
+      const session = await userService.getSession();
 
       if (session?.user) {
         setUser({

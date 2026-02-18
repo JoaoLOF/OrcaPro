@@ -116,6 +116,30 @@ const SaveIcon = ({ size = 20, color = "#FFFFFF" }) => (
   </Svg>
 );
 
+const PlusIcon = ({ size = 20, color = "#FFFFFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 5V19M5 12H19"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const CheckIcon = ({ size = 20, color = "#FFFFFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M20 6L9 17L4 12"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 const CloseIcon = ({ size = 20, color = "#FFFFFF" }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
@@ -186,18 +210,43 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [observations, setObservations] = useState("");
+  const [description, setDescription] = useState("");
   const [status, setStatus] = useState<BudgetStatus>(BudgetStatus.PENDING);
 
-  const {
-    data: budgetItems,
-    error,
-  } = (async) =>
-    supabase.from("budget_items").select("*").eq("budget_id", budgetId);
+  const [budgetItems, setBudgetItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+
+  // Item editing states
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [itemName, setItemName] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("");
+  const [itemUnitPrice, setItemUnitPrice] = useState("");
+  const [savingItem, setSavingItem] = useState(false);
 
   useEffect(() => {
     loadBudget();
-  }, [budgetId]);
+  }, []);
+
+  useEffect(() => {
+    async function loadItems() {
+      try {
+        setLoadingItems(true);
+
+        const items = await budgetService.fetchBudgetItemsByBudgetId(budget.id);
+
+        setBudgetItems(items ?? []);
+      } catch (error) {
+        console.error("Erro ao carregar itens:", error);
+      } finally {
+        setLoadingItems(false);
+      }
+    }
+
+    if (budget?.id) {
+      loadItems();
+    }
+  }, [budget?.id]);
 
   const loadBudget = async () => {
     setLoading(true);
@@ -217,7 +266,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         setClientName(response.budget.client_name);
         setClientPhone(response.budget.client_phone);
         setClientEmail(response.budget.client_email || "");
-        setObservations(response.budget.observations || "");
+        setDescription(response.budget.description || "");
         setStatus(response.budget.status);
       }
     } catch (error) {
@@ -236,22 +285,19 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       return;
     }
 
-    if (!clientName.trim()) {
-      Alert.alert("Atenção", "Por favor, informe o nome do cliente");
-      return;
-    }
-
+    console.log();
     setSaving(true);
 
+    const budgetUpdate = {
+      title: title.trim(),
+      description: description.trim() || null,
+    };
+
     try {
-      const response = await budgetService.updateBudget(budget.id, {
-        title: title.trim(),
-        client_name: clientName.trim(),
-        client_phone: clientPhone.trim(),
-        client_email: clientEmail.trim() || null,
-        observations: observations.trim() || null,
-        status,
-      });
+      const response = await budgetService.updateBudget(
+        budget.id,
+        budgetUpdate,
+      );
 
       if (response.error) {
         Alert.alert("Erro", response.error);
@@ -317,6 +363,117 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
     } catch (error) {
       Alert.alert("Erro", "Erro ao atualizar status");
     }
+  };
+
+  const openAddItem = () => {
+    setEditingItemId(null);
+    setItemName("");
+    setItemQuantity("");
+    setItemUnitPrice("");
+    setShowAddItem(true);
+  };
+
+  const openEditItem = (item: any) => {
+    setEditingItemId(item.id);
+    setItemName(item.name);
+    setItemQuantity(String(item.quantity));
+    setItemUnitPrice(String(item.unit_price));
+    setShowAddItem(true);
+  };
+
+  const closeItemForm = () => {
+    setShowAddItem(false);
+    setEditingItemId(null);
+    setItemName("");
+    setItemQuantity("");
+    setItemUnitPrice("");
+  };
+
+  const handleSaveItem = async () => {
+    if (!budget) return;
+
+    if (!itemName.trim()) {
+      Alert.alert("Atenção", "Informe o nome do item");
+      return;
+    }
+    const qty = parseFloat(itemQuantity);
+    const price = parseFloat(itemUnitPrice.replace(",", "."));
+    if (isNaN(qty) || qty <= 0) {
+      Alert.alert("Atenção", "Informe uma quantidade válida");
+      return;
+    }
+    if (isNaN(price) || price < 0) {
+      Alert.alert("Atenção", "Informe um preço válido");
+      return;
+    }
+
+    const total = qty * price;
+    setSavingItem(true);
+
+    try {
+      if (editingItemId) {
+        // Update existing item
+        const { error } = await supabase
+          .from("budget_items")
+          .update({
+            name: itemName.trim(),
+            quantity: qty,
+            unit_price: price,
+            total,
+          })
+          .eq("id", editingItemId);
+        if (error) throw error;
+      } else {
+        // Insert new item
+        const position = budgetItems.length;
+        const { error } = await supabase
+          .from("budget_items")
+          .insert([
+            {
+              budget_id: budget.id,
+              name: itemName.trim(),
+              quantity: qty,
+              unit_price: price,
+              total,
+              position,
+            },
+          ]);
+        if (error) throw error;
+      }
+
+      // Reload items
+      const items = await budgetService.fetchBudgetItemsByBudgetId(budget.id);
+      setBudgetItems(items ?? []);
+      closeItemForm();
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Erro ao salvar item");
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    Alert.alert("Excluir Item", "Deseja remover este item do orçamento?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const { error } = await supabase
+              .from("budget_items")
+              .delete()
+              .eq("id", itemId);
+            if (error) throw error;
+            setBudgetItems((prev: any[]) =>
+              prev.filter((i) => i.id !== itemId),
+            );
+          } catch (err: any) {
+            Alert.alert("Erro", err.message || "Erro ao excluir item");
+          }
+        },
+      },
+    ]);
   };
 
   const formatCurrency = (value: number): string => {
@@ -517,8 +674,8 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                     style={[styles.input, styles.textArea]}
                     placeholder="Observações sobre o orçamento"
                     placeholderTextColor="#64748B"
-                    value={observations}
-                    onChangeText={setObservations}
+                    value={description}
+                    onChangeText={setDescription}
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
@@ -526,7 +683,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                   />
                 ) : (
                   <Text style={styles.value}>
-                    {observations || "Sem observações"}
+                    {description || "Sem observações"}
                   </Text>
                 )}
               </View>
@@ -542,111 +699,175 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           </BlurView>
         </View>
 
-        {/* Client Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Dados do Cliente</Text>
-          <BlurView intensity={15} tint="dark" style={styles.card}>
-            <View style={styles.cardInner}>
-              {/* Nome */}
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <UserIcon size={16} color="#94A3B8" />
-                  <Text style={styles.label}>NOME</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nome do cliente"
-                    placeholderTextColor="#64748B"
-                    value={clientName}
-                    onChangeText={setClientName}
-                    editable={!saving}
-                  />
-                ) : (
-                  <Text style={styles.value}>{clientName}</Text>
-                )}
-              </View>
-
-              {/* Telefone */}
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <PhoneIcon size={16} color="#94A3B8" />
-                  <Text style={styles.label}>TELEFONE</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="(00) 00000-0000"
-                    placeholderTextColor="#64748B"
-                    value={clientPhone}
-                    onChangeText={setClientPhone}
-                    keyboardType="phone-pad"
-                    editable={!saving}
-                  />
-                ) : (
-                  <Text style={styles.value}>{clientPhone}</Text>
-                )}
-              </View>
-
-              {/* E-mail */}
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <MailIcon size={16} color="#94A3B8" />
-                  <Text style={styles.label}>E-MAIL</Text>
-                </View>
-                {editing ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="cliente@email.com"
-                    placeholderTextColor="#64748B"
-                    value={clientEmail}
-                    onChangeText={setClientEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!saving}
-                  />
-                ) : (
-                  <Text style={styles.value}>
-                    {clientEmail || "Não informado"}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </BlurView>
-        </View>
-
         {/* Items Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📦 Itens do Orçamento</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>📦 Itens do Orçamento</Text>
+            <TouchableOpacity
+              style={styles.addItemButton}
+              onPress={openAddItem}
+              activeOpacity={0.7}
+            >
+              <PlusIcon size={18} color="#FFFFFF" />
+              <Text style={styles.addItemButtonText}>Adicionar</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Add/Edit Item Form */}
+          {showAddItem && (
+            <BlurView
+              intensity={15}
+              tint="dark"
+              style={[styles.card, { marginBottom: 12 }]}
+            >
+              <View style={styles.cardInner}>
+                <Text style={styles.label}>
+                  {editingItemId ? "EDITAR ITEM" : "NOVO ITEM"}
+                </Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>NOME DO ITEM</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: Mão de obra, Material..."
+                    placeholderTextColor="#64748B"
+                    value={itemName}
+                    onChangeText={setItemName}
+                    editable={!savingItem}
+                  />
+                </View>
+
+                <View style={styles.itemFormRow}>
+                  <View
+                    style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}
+                  >
+                    <Text style={styles.label}>QTD</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="1"
+                      placeholderTextColor="#64748B"
+                      value={itemQuantity}
+                      onChangeText={setItemQuantity}
+                      keyboardType="numeric"
+                      editable={!savingItem}
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 2 }]}>
+                    <Text style={styles.label}>PREÇO UNIT. (R$)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0,00"
+                      placeholderTextColor="#64748B"
+                      value={itemUnitPrice}
+                      onChangeText={setItemUnitPrice}
+                      keyboardType="decimal-pad"
+                      editable={!savingItem}
+                    />
+                  </View>
+                </View>
+
+                {itemQuantity && itemUnitPrice ? (
+                  <Text style={styles.itemPreviewTotal}>
+                    Total:{" "}
+                    {formatCurrency(
+                      (parseFloat(itemQuantity) || 0) *
+                        (parseFloat(itemUnitPrice.replace(",", ".")) || 0),
+                    )}
+                  </Text>
+                ) : null}
+
+                <View style={styles.itemFormActions}>
+                  <TouchableOpacity
+                    style={styles.cancelItemButton}
+                    onPress={closeItemForm}
+                    activeOpacity={0.7}
+                  >
+                    <CloseIcon size={16} color="#94A3B8" />
+                    <Text style={styles.cancelItemText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.saveItemButton}
+                    onPress={handleSaveItem}
+                    disabled={savingItem}
+                    activeOpacity={0.7}
+                  >
+                    <LinearGradient
+                      colors={["#10B981", "#059669"]}
+                      style={styles.saveItemGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      {savingItem ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <>
+                          <CheckIcon size={16} color="#FFFFFF" />
+                          <Text style={styles.saveItemText}>
+                            {editingItemId ? "Atualizar" : "Adicionar"}
+                          </Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </BlurView>
+          )}
 
           <BlurView intensity={15} tint="dark" style={styles.card}>
             <View style={styles.cardInner}>
-              {budgetItems && budgetItems.length > 0 ? (
-                budgetItems.map((item, index) => (
-                  <View key={item.id} style={styles.itemRow}>
-                    <View style={styles.itemInfo}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemDetails}>
-                        {item.quantity}x {formatCurrency(item.unit_price)}
-                      </Text>
-                    </View>
+              {loadingItems ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : budgetItems.length > 0 ? (
+                <>
+                  {budgetItems.map((item: any) => (
+                    <View key={item.id} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemDetails}>
+                          {item.quantity}x {formatCurrency(item.unit_price)}
+                        </Text>
+                      </View>
 
-                    <Text style={styles.itemTotal}>
-                      {formatCurrency(item.total)}
+                      <Text style={styles.itemTotal}>
+                        {formatCurrency(item.total)}
+                      </Text>
+
+                      <View style={styles.itemActions}>
+                        <TouchableOpacity
+                          style={styles.itemEditBtn}
+                          onPress={() => openEditItem(item)}
+                          activeOpacity={0.7}
+                        >
+                          <EditIcon size={15} color="#3B82F6" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.itemDeleteBtn}
+                          onPress={() => handleDeleteItem(item.id)}
+                          activeOpacity={0.7}
+                        >
+                          <TrashIcon size={15} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>TOTAL</Text>
+                    <Text style={styles.totalValue}>
+                      {formatCurrency(
+                        budgetItems.reduce(
+                          (acc: number, item: any) => acc + item.total,
+                          0,
+                        ),
+                      )}
                     </Text>
                   </View>
-                ))
+                </>
               ) : (
-                <Text style={styles.emptyItems}>Nenhum item cadastrado</Text>
-              )}
-
-              {/* Total */}
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={styles.totalValue}>
-                  {formatCurrency(budget.total_value)}
+                <Text style={styles.emptyItems}>
+                  Nenhum item cadastrado. Toque em "Adicionar" para incluir.
                 </Text>
-              </View>
+              )}
             </View>
           </BlurView>
         </View>
@@ -905,6 +1126,102 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     paddingVertical: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  addItemButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.4)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  addItemButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#3B82F6",
+  },
+  itemFormRow: {
+    flexDirection: "row",
+  },
+  itemPreviewTotal: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+    marginBottom: 16,
+    textAlign: "right",
+  },
+  itemFormActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  cancelItemButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "rgba(148, 163, 184, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.2)",
+  },
+  cancelItemText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#94A3B8",
+  },
+  saveItemButton: {
+    flex: 2,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  saveItemGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+  },
+  saveItemText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  itemActions: {
+    flexDirection: "row",
+    gap: 6,
+    marginLeft: 8,
+  },
+  itemEditBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  itemDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   totalRow: {
     flexDirection: "row",
