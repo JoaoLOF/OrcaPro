@@ -9,16 +9,7 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileData {
-  id?: string;
-  nome_completo?: string;
-  email?: string;
-  telefone?: string;
-  avatar_url?: string;
-  empresa?: string;
-  cnpj?: string;
-  endereco?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-  updated_at?: string;
+  name: String,
+  phone: String,
+  updated_at: String,
 }

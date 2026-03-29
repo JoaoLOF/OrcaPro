@@ -24,57 +24,106 @@ import {
   EyeOffIcon,
   UserIcon,
 } from "../components/Icons";
+import { AlertModal } from "../components/Componentes";
 
 const userService = new UserService();
 
 export default function RegisterScreen({ navigation }: any) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
+  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
+  const [alertVisible, setAlertVisible] = useState(false);
+
   const validateFields = (): boolean => {
     if (!name.trim()) {
-      Alert.alert("Atenção", "Por favor, informe seu nome");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe seu nome");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (name.trim().length < 3) {
-      Alert.alert("Atenção", "O nome deve ter no mínimo 3 caracteres");
+      setModalTitle("Atenção");
+      setModalMessage("O nome deve ter no mínimo 3 caracteres");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (!email.trim()) {
-      Alert.alert("Atenção", "Por favor, informe seu e-mail");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe seu e-mail");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
+      return false;
+    }
+
+    if (!companyName.trim()) {
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe o nome da empresa");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert("Atenção", "Por favor, informe um e-mail válido");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe um e-mail válido");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (!password.trim()) {
-      Alert.alert("Atenção", "Por favor, informe sua senha");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe sua senha");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (password.length < 6) {
-      Alert.alert("Atenção", "A senha deve ter no mínimo 6 caracteres");
+      setModalTitle("Atenção");
+      setModalMessage("A senha deve ter no mínimo 6 caracteres");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (!confirmPassword.trim()) {
-      Alert.alert("Atenção", "Por favor, confirme sua senha");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, confirme sua senha");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Atenção", "As senhas não coincidem");
+      setModalTitle("Atenção");
+      setModalMessage("As senhas não coincidem");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return false;
     }
 
@@ -90,6 +139,7 @@ export default function RegisterScreen({ navigation }: any) {
       const response = await userService.registerWithEmail({
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        company_name: companyName.trim(),
         password,
       });
 
@@ -98,27 +148,32 @@ export default function RegisterScreen({ navigation }: any) {
           response.error.includes("already registered") ||
           response.error.includes("já está cadastrado")
         ) {
-          Alert.alert(
-            "E-mail já cadastrado",
-            "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.",
-          );
+          setModalTitle("E-mail já cadastrado");
+          setModalMessage("Este e-mail já está em uso. Tente outro e-mail.");
+          setModalConfirm(() => () => setAlertVisible(false));
+          setAlertVisible(true);
         } else {
-          Alert.alert("Erro ao criar conta", response.error);
+          setModalTitle("Erro ao criar conta");
+          setModalMessage(response.error);
+          setModalConfirm(() => () => setAlertVisible(false));
+          setAlertVisible(true);
         }
       } else if (response.user) {
-        Alert.alert(
-          "Conta criada!",
+        setModalTitle("Conta criada!");
+        setModalMessage(
           "Sua conta foi criada com sucesso. Faça login para continuar.",
-          [
-            {
-              text: "OK",
-              onPress: () => navigation.navigate("Login"),
-            },
-          ],
         );
+        setModalConfirm(() => () => {
+          navigation.goBack();
+          setAlertVisible(false);
+        });
+        setAlertVisible(true);
       }
     } catch (err) {
-      Alert.alert("Erro", "Erro inesperado. Tente novamente.");
+      setModalTitle("Erro");
+      setModalMessage("Erro inesperado. Tente novamente.");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setLoading(false);
     }
@@ -164,7 +219,6 @@ export default function RegisterScreen({ navigation }: any) {
               </Text>
 
               <View style={styles.form}>
-                {/* Name Input */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>NOME COMPLETO</Text>
                   <View style={styles.inputWrapper}>
@@ -183,7 +237,6 @@ export default function RegisterScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                {/* Email Input */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>EMAIL</Text>
                   <View style={styles.inputWrapper}>
@@ -204,7 +257,24 @@ export default function RegisterScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                {/* Password Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>EMPRESA</Text>
+                  <View style={styles.inputWrapper}>
+                    <View style={styles.inputIconContainer}>
+                      <MailIcon size={20} color="#64748B" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Digite o nome da emrpesa"
+                      placeholderTextColor="#64748B"
+                      value={companyName}
+                      onChangeText={setCompanyName}
+                      autoCapitalize="words"
+                      editable={!loading}
+                    />
+                  </View>
+                </View>
+
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>SENHA</Text>
                   <View style={styles.inputWrapper}>
@@ -236,7 +306,6 @@ export default function RegisterScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                {/* Confirm Password Input */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>CONFIRMAR SENHA</Text>
                   <View style={styles.inputWrapper}>
@@ -270,7 +339,6 @@ export default function RegisterScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                {/* Register Button */}
                 <TouchableOpacity
                   style={[
                     styles.buttonContainer,
@@ -297,7 +365,6 @@ export default function RegisterScreen({ navigation }: any) {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* Login Link */}
                 <View style={styles.footer}>
                   <Text style={styles.footerText}>Já tem uma conta? </Text>
                   <TouchableOpacity
@@ -313,6 +380,15 @@ export default function RegisterScreen({ navigation }: any) {
           </BlurView>
         </ScrollView>
       </KeyboardAvoidingView>
+      <AlertModal
+        visible={alertVisible}
+        title={modalTitle}
+        message={modalMessage}
+        onConfirm={() => {
+          modalConfirm();
+        }}
+        onCancel={modalCancel}
+      />
     </View>
   );
 }

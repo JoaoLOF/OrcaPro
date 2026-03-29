@@ -70,7 +70,13 @@ export default function Navigation() {
       >
         {user ? (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{
+                animation: "slide_from_left",
+              }}
+            />
             <Stack.Screen name="CreateBudget" component={CreateBudgetScreen} />
             <Stack.Screen
               name="BudgetDetails"
@@ -84,7 +90,13 @@ export default function Navigation() {
           </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{
+                animation: "fade",
+              }}
+            />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         )}

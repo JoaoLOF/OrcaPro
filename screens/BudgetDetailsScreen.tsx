@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -18,6 +19,18 @@ import Svg, { Path, Circle } from "react-native-svg";
 import { BudgetService } from "../services/budgetServices";
 import { Budget, BudgetStatus } from "../types/budget";
 import { supabase } from "../services/supabase";
+import {
+  BackIcon,
+  EditIcon,
+  TrashIcon,
+  SaveIcon,
+  PlusIcon,
+  CheckIcon,
+  CloseIcon,
+  PhoneIcon,
+  MailIcon,
+} from "../components/Icons";
+import { AlertModal } from "../components/Componentes";
 
 type RootStackParamList = {
   Home: undefined;
@@ -39,162 +52,6 @@ interface Props {
   route: BudgetDetailsScreenRouteProp;
 }
 
-// Ícones SVG
-const BackIcon = ({ size = 24, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 12H5M5 12L12 19M5 12L12 5"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const EditIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M11 4H4C3.46957 4 3 4.46957 3 5V20C3 20.5304 3.46957 21 4 21H19C19.5304 21 20 20.5304 20 20V13"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const TrashIcon = ({ size = 20, color = "#EF4444" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M3 6H5H21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const SaveIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 21H5C4.46957 21 4 20.5304 4 20V4C4 3.46957 4.46957 3 5 3H16L20 7V20C20 20.5304 19.5304 21 19 21Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M17 21V13H7V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M7 3V7H15"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const PlusIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 5V19M5 12H19"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const CheckIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M20 6L9 17L4 12"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const CloseIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M18 6L6 18M6 6L18 18"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const UserIcon = ({ size = 16, color = "#94A3B8" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
-    <Path
-      d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
-const PhoneIcon = ({ size = 16, color = "#94A3B8" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M22 16.92V19.92C22 20.4696 21.5523 20.9167 21.0044 20.9201C18.6565 20.9557 16.3654 20.3527 14.35 19.18C12.4645 18.0781 10.8662 16.4798 9.76451 14.5943C8.58979 12.5744 7.9868 10.2785 8.02282 7.92564C8.02626 7.37855 8.47243 6.93077 9.02001 6.93077H12.02C12.5677 6.93077 13.02 7.38308 13.02 7.93077C13.02 9.02564 13.22 10.0897 13.59 11.0872C13.73 11.4897 13.59 11.9436 13.25 12.2051L11.38 13.3077C12.5104 15.3654 14.1346 16.9897 16.1923 18.1201L17.2949 16.2513C17.5564 15.9115 18.0103 15.7718 18.4128 15.9128C19.4103 16.2821 20.4744 16.4821 21.5692 16.4821C22.1169 16.4821 22.5692 16.9344 22.5692 17.4821V19.92H22Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const MailIcon = ({ size = 16, color = "#94A3B8" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M22 6L12 13L2 6"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
 const budgetService = new BudgetService();
 
 export default function BudgetDetailsScreen({ navigation, route }: Props) {
@@ -211,8 +68,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<BudgetStatus>(BudgetStatus.PENDING);
-
+  const [status, setStatus] = useState<BudgetStatus>(BudgetStatus.DRAFT);
   const [budgetItems, setBudgetItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(true);
 
@@ -223,6 +79,12 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const [itemQuantity, setItemQuantity] = useState("");
   const [itemUnitPrice, setItemUnitPrice] = useState("");
   const [savingItem, setSavingItem] = useState(false);
+
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
+  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
+  const [alertVisible, setAlertVisible] = useState(false);
 
   useEffect(() => {
     loadBudget();
@@ -255,7 +117,11 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       console.log("📦 Budget retornado:", response);
 
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+
         setLoading(false);
         return;
       }
@@ -270,7 +136,11 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         setStatus(response.budget.status);
       }
     } catch (error) {
-      Alert.alert("Erro", "Erro ao carregar orçamento");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao carregar orçamento");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       setLoading(false);
     } finally {
       setLoading(false);
@@ -279,69 +149,84 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!budget) return;
-
     if (!title.trim()) {
-      Alert.alert("Atenção", "Por favor, informe um título");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe um título");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
-
-    console.log();
     setSaving(true);
-
     const budgetUpdate = {
       title: title.trim(),
       description: description.trim() || null,
     };
-
     try {
       const response = await budgetService.updateBudget(
         budget.id,
         budgetUpdate,
       );
-
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+
         return;
       }
 
-      Alert.alert("Sucesso", "Orçamento atualizado com sucesso!");
+      setModalTitle("Sucesso");
+      setModalMessage("Orçamento salvo com sucesso.");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       setEditing(false);
       loadBudget();
     } catch (error) {
-      Alert.alert("Erro", "Erro ao salvar orçamento");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao salvar orçamento");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Excluir Orçamento",
+    setModalTitle("Excluir Orçamento");
+    setModalMessage(
       "Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await budgetService.deleteBudget(budgetId);
-
-              if (response.error) {
-                Alert.alert("Erro", response.error);
-                return;
-              }
-
-              Alert.alert("Sucesso", "Orçamento excluído com sucesso!", [
-                { text: "OK", onPress: () => navigation.goBack() },
-              ]);
-            } catch (error) {
-              Alert.alert("Erro", "Erro ao excluir orçamento");
-            }
-          },
-        },
-      ],
     );
+    setModalConfirm(() => async () => {
+      try {
+        const response = await budgetService.deleteBudget(budgetId);
+
+        if (response.error) {
+          setModalTitle("Erro");
+          setModalMessage(response.error);
+          setModalConfirm(() => () => setAlertVisible(false));
+          setAlertVisible(true);
+
+          return;
+        }
+
+        setModalTitle("Sucesso");
+        setModalMessage("Orçamento excluído com sucesso!");
+        setModalConfirm(() => () => {
+          navigation.goBack();
+          setAlertVisible(false);
+        });
+        setAlertVisible(true);
+      } catch (error) {
+        setModalTitle("Erro");
+        setModalMessage("Erro ao excluir orçamento");
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+      }
+    });
+    setModalCancel(() => () => setAlertVisible(false));
+    setAlertVisible(true);
   };
 
   const handleStatusChange = async (newStatus: BudgetStatus) => {
@@ -354,14 +239,24 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       );
 
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+
         return;
       }
 
       setStatus(newStatus);
-      Alert.alert("Sucesso", "Status atualizado com sucesso!");
+      setModalTitle("Sucesso");
+      setModalMessage("Status atualizado com sucesso!");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } catch (error) {
-      Alert.alert("Erro", "Erro ao atualizar status");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao atualizar status");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     }
   };
 
@@ -393,17 +288,29 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
     if (!budget) return;
 
     if (!itemName.trim()) {
-      Alert.alert("Atenção", "Informe o nome do item");
+      setModalTitle("Atenção");
+      setModalMessage("Informe o nome do item");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
     const qty = parseFloat(itemQuantity);
     const price = parseFloat(itemUnitPrice.replace(",", "."));
     if (isNaN(qty) || qty <= 0) {
-      Alert.alert("Atenção", "Informe uma quantidade válida");
+      setModalTitle("Atenção");
+      setModalMessage("Informe uma quantidade válida");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
     if (isNaN(price) || price < 0) {
-      Alert.alert("Atenção", "Informe um preço válido");
+      setModalTitle("Atenção");
+      setModalMessage("Informe um preço válido");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
@@ -425,19 +332,15 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         if (error) throw error;
       } else {
         // Insert new item
-        const position = budgetItems.length;
-        const { error } = await supabase
-          .from("budget_items")
-          .insert([
-            {
-              budget_id: budget.id,
-              name: itemName.trim(),
-              quantity: qty,
-              unit_price: price,
-              total,
-              position,
-            },
-          ]);
+        const { error } = await supabase.from("budget_items").insert([
+          {
+            budget_id: budget.id,
+            name: itemName.trim(),
+            quantity: qty,
+            unit_price: price,
+            total,
+          },
+        ]);
         if (error) throw error;
       }
 
@@ -446,34 +349,36 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       setBudgetItems(items ?? []);
       closeItemForm();
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Erro ao salvar item");
+      setModalTitle("Erro");
+      setModalMessage(err.message || "Erro ao salvar item");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setSavingItem(false);
     }
   };
 
   const handleDeleteItem = (itemId: string) => {
-    Alert.alert("Excluir Item", "Deseja remover este item do orçamento?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Excluir",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const { error } = await supabase
-              .from("budget_items")
-              .delete()
-              .eq("id", itemId);
-            if (error) throw error;
-            setBudgetItems((prev: any[]) =>
-              prev.filter((i) => i.id !== itemId),
-            );
-          } catch (err: any) {
-            Alert.alert("Erro", err.message || "Erro ao excluir item");
-          }
-        },
-      },
-    ]);
+    setModalTitle("Excluir Item");
+    setModalMessage("Deseja remover este item do orçamento?");
+    setModalConfirm(() => async () => {
+      try {
+        const { error } = await supabase
+          .from("budget_items")
+          .delete()
+          .eq("id", itemId);
+        if (error) throw error;
+        setBudgetItems((prev: any[]) => prev.filter((i) => i.id !== itemId));
+        setAlertVisible(false);
+      } catch (err: any) {
+        setModalTitle("Erro");
+        setModalMessage(err.message || "Erro ao salvar item");
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+      }
+    });
+    setModalCancel(() => () => setAlertVisible(false));
+    setAlertVisible(true);
   };
 
   const formatCurrency = (value: number): string => {
@@ -496,14 +401,10 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
 
   const getStatusColor = (status: BudgetStatus): string => {
     switch (status) {
-      case BudgetStatus.PENDING:
-        return "#F59E0B";
       case BudgetStatus.APPROVED:
         return "#10B981";
       case BudgetStatus.REJECTED:
         return "#EF4444";
-      case BudgetStatus.COMPLETED:
-        return "#3B82F6";
       default:
         return "#64748B";
     }
@@ -511,16 +412,12 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
 
   const getStatusText = (status: BudgetStatus): string => {
     switch (status) {
-      case BudgetStatus.PENDING:
-        return "Pendente";
       case BudgetStatus.APPROVED:
         return "Aprovado";
       case BudgetStatus.REJECTED:
         return "Rejeitado";
-      case BudgetStatus.COMPLETED:
-        return "Concluído";
-      default:
-        return status;
+      case BudgetStatus.DRAFT:
+        return "Pendente";
     }
   };
 
@@ -553,11 +450,8 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-
       <View style={styles.orb1} />
-      <View style={styles.orb2} />
-
-      {/* Header */}
+      <View style={styles.orb2} />;{/* Header */}
       <BlurView intensity={20} tint="dark" style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -593,6 +487,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                 style={styles.cancelButton}
                 onPress={() => {
                   setEditing(false);
+                  closeItemForm();
                   loadBudget();
                 }}
                 activeOpacity={0.7}
@@ -603,7 +498,6 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           </View>
         </View>
       </BlurView>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -703,18 +597,20 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>📦 Itens do Orçamento</Text>
-            <TouchableOpacity
-              style={styles.addItemButton}
-              onPress={openAddItem}
-              activeOpacity={0.7}
-            >
-              <PlusIcon size={18} color="#FFFFFF" />
-              <Text style={styles.addItemButtonText}>Adicionar</Text>
-            </TouchableOpacity>
+            {editing && (
+              <TouchableOpacity
+                style={styles.addItemButton}
+                onPress={openAddItem}
+                activeOpacity={0.7}
+              >
+                <PlusIcon size={18} color="#FFFFFF" />
+                <Text style={styles.addItemButtonText}>Adicionar</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Add/Edit Item Form */}
-          {showAddItem && (
+          {editing && showAddItem && (
             <BlurView
               intensity={15}
               tint="dark"
@@ -741,10 +637,10 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                   <View
                     style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}
                   >
-                    <Text style={styles.label}>QTD</Text>
+                    <Text style={styles.label}>Quantidade</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="1"
+                      placeholder="0"
                       placeholderTextColor="#64748B"
                       value={itemQuantity}
                       onChangeText={setItemQuantity}
@@ -833,22 +729,24 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
                         {formatCurrency(item.total)}
                       </Text>
 
-                      <View style={styles.itemActions}>
-                        <TouchableOpacity
-                          style={styles.itemEditBtn}
-                          onPress={() => openEditItem(item)}
-                          activeOpacity={0.7}
-                        >
-                          <EditIcon size={15} color="#3B82F6" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.itemDeleteBtn}
-                          onPress={() => handleDeleteItem(item.id)}
-                          activeOpacity={0.7}
-                        >
-                          <TrashIcon size={15} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
+                      {editing && (
+                        <View style={styles.itemActions}>
+                          <TouchableOpacity
+                            style={styles.itemEditBtn}
+                            onPress={() => openEditItem(item)}
+                            activeOpacity={0.7}
+                          >
+                            <EditIcon size={15} color="#3B82F6" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.itemDeleteBtn}
+                            onPress={() => handleDeleteItem(item.id)}
+                            activeOpacity={0.7}
+                          >
+                            <TrashIcon size={15} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   ))}
                   <View style={styles.totalRow}>
@@ -872,7 +770,6 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           </BlurView>
         </View>
       </ScrollView>
-
       {/* Save Button */}
       {editing && (
         <BlurView intensity={20} tint="dark" style={styles.footer}>
@@ -903,6 +800,15 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         </BlurView>
       )}
+      <AlertModal
+        visible={alertVisible}
+        title={modalTitle}
+        message={modalMessage}
+        onConfirm={() => {
+          modalConfirm();
+        }}
+        onCancel={modalCancel}
+      />
     </View>
   );
 }

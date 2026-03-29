@@ -16,80 +16,15 @@ import Svg, { Path, Circle } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
 import { ClientService } from "../services/clientServices";
 import { Client } from "../types/client";
-
-// Ícones SVG
-const BackIcon = ({ size = 24, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 12H5M5 12L12 19M5 12L12 5"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const UserIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
-    <Path
-      d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
-const PhoneIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M22 16.92V19.92C22 20.4723 21.5523 20.92 21 20.92H19C9.62 20.92 2 13.3 2 3.92V1.92C2 1.36772 2.44772 0.92 3 0.92H6C6.55228 0.92 7 1.36772 7 1.92V5.92C7 6.47228 6.55228 6.92 6 6.92H4C4 13.02 8.92 17.92 15 17.92V15.92C15 15.3677 15.4477 14.92 16 14.92H20C20.5523 14.92 21 15.3677 21 15.92V16.92H22Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const MailIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M3 7L12 13L21 7M3 5H21C21.5523 5 22 5.44772 22 6V18C22 18.5523 21.5523 19 21 19H3C2.44772 19 2 18.5523 2 18V6C2 5.44772 2.44772 5 3 5Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const MapPinIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Circle cx="12" cy="10" r="3" stroke={color} strokeWidth="2" />
-  </Svg>
-);
-
-const CheckIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M20 6L9 17L4 12"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
+import {
+  BackIcon,
+  UserIcon,
+  PhoneIcon,
+  MailIcon,
+  MapPinIcon,
+  CheckIcon,
+} from "../components/Icons";
+import { AlertModal } from "../components/Componentes";
 
 const clientService = new ClientService();
 
@@ -101,6 +36,12 @@ export default function CreateClientScreen({ navigation }: any) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
+  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const formatPhone = (text: string) => {
     const cleaned = text.replace(/\D/g, "");
@@ -115,12 +56,20 @@ export default function CreateClientScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!user) {
-      Alert.alert("Erro", "Usuário não autenticado");
+      setModalTitle("Erro");
+      setModalMessage("Usuário não autenticado");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
     if (!nome.trim()) {
-      Alert.alert("Atenção", "Por favor, informe o nome do cliente");
+      setModalTitle("Atenção");
+      setModalMessage("Por favor, informe o nome do cliente");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
@@ -139,15 +88,26 @@ export default function CreateClientScreen({ navigation }: any) {
       const response = await clientService.createClient(clientData);
 
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+
         return;
       }
 
-      Alert.alert("Sucesso", "Cliente cadastrado com sucesso!", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      setModalTitle("Sucesso");
+      setModalMessage("Cliente cadastrado com sucesso!");
+      setModalConfirm(() => () => {
+        navigation.goBack();
+        setAlertVisible(false);
+      });
+      setAlertVisible(true);
     } catch (error) {
-      Alert.alert("Erro", "Erro ao cadastrar cliente. Tente novamente.");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao cadastrar cliente. Tente novamente.");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setSaving(false);
     }
@@ -269,6 +229,15 @@ export default function CreateClientScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
       </BlurView>
+      <AlertModal
+        visible={alertVisible}
+        title={modalTitle}
+        message={modalMessage}
+        onConfirm={() => {
+          modalConfirm();
+        }}
+        onCancel={modalCancel}
+      />
     </View>
   );
 }

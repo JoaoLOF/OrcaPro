@@ -19,6 +19,14 @@ import { useAuthStore } from "../stores/authStores";
 import { UserService } from "../services/userService";
 import { Budget, BudgetStatus } from "../types/budget";
 import { BudgetService } from "../services/budgetServices";
+import {
+  PlusIcon,
+  LogoutIcon,
+  DocumentIcon,
+  ChevronRightIcon,
+  SettingsIcon,
+} from "../components/Icons";
+import { AlertModal } from "../components/Componentes";
 
 type RootStackParamList = {
   Login: undefined;
@@ -37,109 +45,6 @@ interface Props {
   navigation: HomeScreenNavigationProp;
 }
 
-// Ícones SVG
-const PlusIcon = ({ size = 24, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 5V19M5 12H19"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const LogoutIcon = ({ size = 20, color = "#EF4444" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M16 17L21 12L16 7"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M21 12H9"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const DocumentIcon = ({ size = 64, color = "#60A5FA" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M14 2V8H20"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M12 18V12"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M9 15H15"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const ChevronRightIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M9 18L15 12L9 6"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const SettingsIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle
-      cx="12"
-      cy="7"
-      r="4"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <Path
-      d="M5 21C5 17.134 8.134 14 12 14C15.866 14 19 17.134 19 21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
 const userService = new UserService();
 const budgetService = new BudgetService();
 
@@ -148,6 +53,14 @@ export default function HomeScreen({ navigation }: Props) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [profile, setProfile] = useState();
+  const [loadProfile, setLoadProfile] = useState();
+
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
+  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const loadBudgets = async (isRefreshing = false) => {
     if (!user) return;
@@ -158,12 +71,18 @@ export default function HomeScreen({ navigation }: Props) {
       const response = await budgetService.fetchUserBudgetsWithItems(user.id);
 
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
       } else {
         setBudgets(response.budgets);
       }
     } catch (error) {
-      Alert.alert("Erro", "Erro ao carregar orçamentos");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao carregar orçamentos");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -171,8 +90,26 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await userService.fetchUserProfile(user.id);
+        setProfile(data);
+        console.log("Profile: ", data);
+      } catch (error) {
+        console.log("Erro ao buscar profile: ", error);
+      }
+    };
+    loadUser();
+  }, []);
+
+  useEffect(() => {
     loadBudgets();
   }, [user]);
+
+  useEffect(() => {
+    setLoadProfile(userService.fetchUserProfile(user.id));
+    console.log(loadProfile);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -201,17 +138,14 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleLogout = async () => {
-    Alert.alert("Sair", "Tem certeza que deseja sair?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Sair",
-        style: "destructive",
-        onPress: async () => {
-          await userService.logout();
-          logoutStore();
-        },
-      },
-    ]);
+    setModalTitle("Sair");
+    setModalMessage("Tem certeza que deseja sair?");
+    setModalConfirm(() => async () => {
+      await userService.logout();
+      logoutStore();
+    });
+    setModalCancel(() => () => setAlertVisible(false));
+    setAlertVisible(true);
   };
 
   const formatCurrency = (value: number): string => {
@@ -364,7 +298,7 @@ export default function HomeScreen({ navigation }: Props) {
       <BlurView intensity={20} tint="dark" style={styles.header}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.greeting}>Olá, {user?.name}</Text>
+            <Text style={styles.greeting}>Olá, {loadProfile.name}</Text>
             <Text style={styles.subtitle}>Gerencie seus orçamentos</Text>
           </View>
           <View style={styles.headerActions}>
@@ -424,6 +358,15 @@ export default function HomeScreen({ navigation }: Props) {
           </LinearGradient>
         </TouchableOpacity>
       )}
+      <AlertModal
+        visible={alertVisible}
+        title={modalTitle}
+        message={modalMessage}
+        onConfirm={() => {
+          modalConfirm();
+        }}
+        onCancel={modalCancel}
+      />
     </View>
   );
 }

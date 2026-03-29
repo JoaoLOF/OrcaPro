@@ -20,180 +20,19 @@ import { ClientService } from "../services/clientServices";
 import { BudgetStatus, Budget, BudgetItem } from "../types/budget";
 import { Client } from "../types/client";
 import { unmountComponentAtNodeAndRemoveContainer } from "react-native/types_generated/Libraries/ReactNative/RendererImplementation";
-
-// Ícones SVG
-const BackIcon = ({ size = 24, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 12H5M5 12L12 19M5 12L12 5"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const UserIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
-    <Path
-      d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
-const PhoneIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M22 16.92V19.92C22 20.4723 21.5523 20.92 21 20.92H19C9.62 20.92 2 13.3 2 3.92V1.92C2 1.36772 2.44772 0.92 3 0.92H6C6.55228 0.92 7 1.36772 7 1.92V5.92C7 6.47228 6.55228 6.92 6 6.92H4C4 13.02 8.92 17.92 15 17.92V15.92C15 15.3677 15.4477 14.92 16 14.92H20C20.5523 14.92 21 15.3677 21 15.92V16.92H22Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const MailIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect
-      x="3"
-      y="5"
-      width="18"
-      height="14"
-      rx="2"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <Path
-      d="M3 7L12 13L21 7"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const FileIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M14 2V8H20"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const PlusIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 5V19M5 12H19"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const TrashIcon = ({ size = 20, color = "#EF4444" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M3 6H5H21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const SaveIcon = ({ size = 20, color = "#FFFFFF" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M17 21V13H7V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M7 3V8H15"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const SearchIcon = ({ size = 20, color = "#64748B" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Circle
-      cx="11"
-      cy="11"
-      r="8"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <Path
-      d="M21 21L16.65 16.65"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
-const UsersIcon = ({ size = 20, color = "#3B82F6" }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Circle cx="9" cy="7" r="4" stroke={color} strokeWidth="2" />
-    <Path
-      d="M23 21V19C23 18.0 22.5 17.2 22 16.5M16 3.5C17 4 18 5 18 7C18 9 17 10 16 10.5"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
+import {
+  FileIcon,
+  BackIcon,
+  UserIcon,
+  PhoneIcon,
+  MailIcon,
+  PlusIcon,
+  TrashIcon,
+  SaveIcon,
+  SearchIcon,
+  UsersIcon,
+} from "../components/Icons";
+import { AlertModal } from "../components/Componentes";
 
 const budgetService = new BudgetService();
 const clientService = new ClientService();
@@ -214,6 +53,12 @@ export default function CreateBudgetScreen({ navigation }: any) {
   const [observations, setObservations] = useState("");
   const [items, setItems] = useState<any[]>([]);
 
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalMessage, setModalMessage] = useState<string>("");
+  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
+  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
+  const [alertVisible, setAlertVisible] = useState(false);
+
   const currentDate = new Date().toLocaleDateString("pt-BR");
 
   // Carregar clientes ao abrir o modal
@@ -230,12 +75,18 @@ export default function CreateBudgetScreen({ navigation }: any) {
     try {
       const response = await clientService.fetchUserClients(user.id);
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
       } else {
         setClients(response.clients);
       }
     } catch (error) {
-      Alert.alert("Erro", "Erro ao carregar clientes");
+      setModalTitle("Erro");
+      setModalMessage("Erro ao carregar clientes");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setLoadingClients(false);
     }
@@ -271,14 +122,11 @@ export default function CreateBudgetScreen({ navigation }: any) {
   };
 
   const removeItem = (id: string) => {
-    Alert.alert("Remover Item", "Deseja realmente remover este item?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Remover",
-        style: "destructive",
-        onPress: () => setItems(items.filter((item) => item.id !== id)),
-      },
-    ]);
+    setModalTitle("Remover Item");
+    setModalMessage("Deseja realmente remover este item?");
+    setModalConfirm(() => setItems(items.filter((item) => item.id !== id)));
+    setModalCancel(() => () => setAlertVisible(false));
+    setAlertVisible(true);
   };
 
   const updateItem = (id: string, field: string, value: string) => {
@@ -321,17 +169,29 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
   const handleSave = async (isDraft: boolean) => {
     if (!user) {
-      Alert.alert("Erro", "Usuário não autenticado");
+      setModalTitle("Erro");
+      setModalMessage("Usuário não autenticado");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
     if (!clientName || !clientPhone) {
-      Alert.alert("Atenção", "Por favor, preencha nome e telefone do cliente");
+      setModalTitle("Atenção!");
+      setModalMessage("Por favor, preencha nome e telefone do cliente");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
     if (!isDraft && items.length === 0) {
-      Alert.alert("Atenção", "Adicione pelo menos um item ao orçamento");
+      setModalTitle("Atenção!");
+      setModalMessage("Adicione pelo menos um item ao orçamento");
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
+
       return;
     }
 
@@ -356,15 +216,21 @@ export default function CreateBudgetScreen({ navigation }: any) {
       );
 
       if (response.error) {
-        Alert.alert("Erro", response.error);
+        setModalTitle("Erro");
+        setModalMessage(response.error);
+        setModalConfirm(() => () => setAlertVisible(false));
+        setAlertVisible(true);
+
         return;
       }
       navigation.navigate("Home");
     } catch (error: any) {
-      Alert.alert(
-        "Erro",
+      setModalTitle("Erro");
+      setModalMessage(
         error?.message || "Erro ao salvar orçamento. Tente novamente.",
       );
+      setModalConfirm(() => () => setAlertVisible(false));
+      setAlertVisible(true);
     } finally {
       setSaving(false);
     }
@@ -372,6 +238,15 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <AlertModal
+        visible={alertVisible}
+        title={modalTitle}
+        message={modalMessage}
+        onConfirm={() => {
+          modalConfirm();
+        }}
+        onCancel={modalCancel}
+      />
       <LinearGradient
         colors={["#0A0E27", "#1A1F3A", "#0F172A"]}
         style={styles.gradient}
