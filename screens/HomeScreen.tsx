@@ -26,7 +26,7 @@ import {
   ChevronRightIcon,
   SettingsIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 type RootStackParamList = {
   Login: undefined;
@@ -53,14 +53,9 @@ export default function HomeScreen({ navigation }: Props) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [profile, setProfile] = useState();
-  const [loadProfile, setLoadProfile] = useState();
+  const [profile, setProfile] = useState<{ name: string } | null>(null);
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
 
   const loadBudgets = async (isRefreshing = false) => {
     if (!user) return;
@@ -71,18 +66,12 @@ export default function HomeScreen({ navigation }: Props) {
       const response = await budgetService.fetchUserBudgetsWithItems(user.id);
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({ title: "Erro", message: response.error });
       } else {
         setBudgets(response.budgets);
       }
     } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao carregar orçamentos");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Erro ao carregar orçamentos" });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -90,30 +79,24 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const data = await userService.fetchUserProfile(user.id);
-        setProfile(data);
-        console.log("Profile: ", data);
-      } catch (error) {
-        console.log("Erro ao buscar profile: ", error);
-      }
-    };
-    loadUser();
-  }, []);
-
-  useEffect(() => {
     loadBudgets();
   }, [user]);
-
-  useEffect(() => {
-    setLoadProfile(userService.fetchUserProfile(user.id));
-    console.log(loadProfile);
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
       loadBudgets();
+
+      const loadUser = async () => {
+        try {
+          const data = await userService.fetchUserProfile(user.id);
+          console.log("Profile:", data.profile);
+          setProfile(data.profile);
+        } catch (error) {
+          console.log("Erro ao buscar profile: ", error);
+        }
+      };
+
+      loadUser();
     }, [user]),
   );
 
@@ -138,14 +121,15 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleLogout = async () => {
-    setModalTitle("Sair");
-    setModalMessage("Tem certeza que deseja sair?");
-    setModalConfirm(() => async () => {
-      await userService.logout();
-      logoutStore();
+    showModal({
+      title: "Sair",
+      message: "Tem certeza que deseja sair?",
+      onConfirm: async () => {
+        await userService.logout();
+        logoutStore();
+      },
+      onCancel: () => {},
     });
-    setModalCancel(() => () => setAlertVisible(false));
-    setAlertVisible(true);
   };
 
   const formatCurrency = (value: number): string => {
@@ -298,7 +282,7 @@ export default function HomeScreen({ navigation }: Props) {
       <BlurView intensity={20} tint="dark" style={styles.header}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.greeting}>Olá, {loadProfile.name}</Text>
+            <Text style={styles.greeting}>Olá, {profile?.name}</Text>
             <Text style={styles.subtitle}>Gerencie seus orçamentos</Text>
           </View>
           <View style={styles.headerActions}>
@@ -358,15 +342,7 @@ export default function HomeScreen({ navigation }: Props) {
           </LinearGradient>
         </TouchableOpacity>
       )}
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
     </View>
   );
 }

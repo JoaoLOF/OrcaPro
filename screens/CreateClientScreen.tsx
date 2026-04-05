@@ -7,107 +7,125 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import Svg, { Path, Circle } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
 import { ClientService } from "../services/clientServices";
-import { Client } from "../types/client";
 import {
   BackIcon,
   UserIcon,
   PhoneIcon,
   MailIcon,
-  MapPinIcon,
   CheckIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
+
+// Ícone para CNPJ/CPF (documento)
+import Svg, { Path, Rect } from "react-native-svg";
+const DocIcon = ({ size = 16, color = "#94A3B8" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="4"
+      y="2"
+      width="16"
+      height="20"
+      rx="2"
+      stroke={color}
+      strokeWidth="2"
+    />
+    <Path
+      d="M8 7H16M8 11H16M8 15H12"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
 
 const clientService = new ClientService();
+
+const formatPhone = (text: string): string => {
+  const digits = text.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatTaxId = (text: string): string => {
+  const digits = text.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 11) {
+    // CPF: 000.000.000-00
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9)
+      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+  // CNPJ: 00.000.000/0000-00
+  if (digits.length <= 12)
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+};
 
 export default function CreateClientScreen({ navigation }: any) {
   const { user } = useAuthStore();
   const [saving, setSaving] = useState(false);
 
-  // Estados do formulário
   const [nome, setNome] = useState("");
+  const [taxId, setTaxId] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
-
-  const formatPhone = (text: string) => {
-    const cleaned = text.replace(/\D/g, "");
-    if (cleaned.length <= 11) {
-      let formatted = cleaned;
-      formatted = formatted.replace(/^(\d{2})(\d)/g, "($1) $2");
-      formatted = formatted.replace(/(\d)(\d{4})$/, "$1-$2");
-      return formatted;
-    }
-    return phone;
-  };
+  const { showModal, modalProps } = useModal();
 
   const handleSave = async () => {
     if (!user) {
-      setModalTitle("Erro");
-      setModalMessage("Usuário não autenticado");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Usuário não autenticado" });
 
       return;
     }
 
     if (!nome.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe o nome do cliente");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
-
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe o nome do cliente",
+      });
       return;
     }
 
     setSaving(true);
-
     try {
       const clientData = {
-        usuario_id: user.id,
-        nome: nome,
-        email: email,
-        telefone: phone,
-        criado_em: user.created_at,
+        nome: nome.trim(),
+        cpf_cnpj: taxId.trim() || null,
+        email: email.trim() || null,
+        telefone: phone.trim() || null,
+        user_id: user.id,
       };
 
-      console.log(user.id);
       const response = await clientService.createClient(clientData);
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
-
+        showModal({ title: "Erro", message: response.error });
         return;
       }
 
-      setModalTitle("Sucesso");
-      setModalMessage("Cliente cadastrado com sucesso!");
-      setModalConfirm(() => () => {
-        navigation.goBack();
-        setAlertVisible(false);
+      showModal({
+        title: "Sucesso",
+        message: "Cliente cadastrado com sucesso!",
+        onConfirm: () => {
+          navigation.goBack();
+        },
       });
-      setAlertVisible(true);
-    } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao cadastrar cliente. Tente novamente.");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+    } catch {
+      showModal({
+        title: "Erro",
+        message: "Erro ao cadastrar cliente. Tente novamente.",
+      });
     } finally {
       setSaving(false);
     }
@@ -121,7 +139,6 @@ export default function CreateClientScreen({ navigation }: any) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-
       <View style={styles.orb1} />
       <View style={styles.orb2} />
 
@@ -144,17 +161,22 @@ export default function CreateClientScreen({ navigation }: any) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Seção: Dados Básicos */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Dados Básicos</Text>
+          <Text style={styles.sectionTitle}>👤 Dados do Cliente</Text>
+          <Text style={styles.sectionDescription}>
+            Preencha as informações do novo cliente
+          </Text>
 
           <BlurView intensity={15} tint="dark" style={styles.card}>
             <View style={styles.cardInner}>
+              {/* Nome */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
                   <UserIcon size={16} color="#94A3B8" />
-                  <Text style={styles.label}>NOME COMPLETO *</Text>
+                  <Text style={styles.label}>NOME DO CLIENTE</Text>
                 </View>
                 <TextInput
                   style={styles.input}
@@ -162,10 +184,30 @@ export default function CreateClientScreen({ navigation }: any) {
                   placeholderTextColor="#64748B"
                   value={nome}
                   onChangeText={setNome}
+                  autoCapitalize="words"
                   editable={!saving}
                 />
               </View>
 
+              {/* CNPJ / CPF */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <DocIcon size={16} color="#94A3B8" />
+                  <Text style={styles.label}>CPF / CNPJ</Text>
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="00.000.000/0000-00"
+                  placeholderTextColor="#64748B"
+                  value={taxId}
+                  onChangeText={(t) => setTaxId(formatTaxId(t))}
+                  keyboardType="numeric"
+                  maxLength={18}
+                  editable={!saving}
+                />
+              </View>
+
+              {/* E-mail */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
                   <MailIcon size={16} color="#94A3B8" />
@@ -183,7 +225,8 @@ export default function CreateClientScreen({ navigation }: any) {
                 />
               </View>
 
-              <View style={styles.inputGroup}>
+              {/* Telefone */}
+              <View style={[styles.inputGroup, { marginBottom: 0 }]}>
                 <View style={styles.labelRow}>
                   <PhoneIcon size={16} color="#94A3B8" />
                   <Text style={styles.label}>TELEFONE (OPCIONAL)</Text>
@@ -193,7 +236,7 @@ export default function CreateClientScreen({ navigation }: any) {
                   placeholder="(00) 00000-0000"
                   placeholderTextColor="#64748B"
                   value={phone}
-                  onChangeText={(text) => setPhone(formatPhone(text))}
+                  onChangeText={(t) => setPhone(formatPhone(t))}
                   keyboardType="phone-pad"
                   maxLength={15}
                   editable={!saving}
@@ -229,31 +272,15 @@ export default function CreateClientScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
       </BlurView>
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+
+      <AlertModal {...modalProps} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0A0E27",
-  },
-  gradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
+  container: { flex: 1, backgroundColor: "#0A0E27" },
+  gradient: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
   orb1: {
     position: "absolute",
     width: 300,
@@ -299,21 +326,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-    paddingBottom: 120,
-  },
-  section: {
-    marginBottom: 24,
-  },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 24, paddingBottom: 120 },
+  section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: "#94A3B8",
     marginBottom: 16,
+    lineHeight: 20,
   },
   card: {
     borderRadius: 16,
@@ -322,24 +348,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
   },
-  cardInner: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
+  cardInner: { padding: 20 },
+  inputGroup: { marginBottom: 20 },
+  labelRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   label: {
     fontSize: 11,
     fontWeight: "700",
@@ -384,12 +395,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+  saveButtonText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  buttonDisabled: { opacity: 0.5 },
 });

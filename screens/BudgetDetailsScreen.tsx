@@ -30,7 +30,7 @@ import {
   PhoneIcon,
   MailIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 type RootStackParamList = {
   Home: undefined;
@@ -80,11 +80,34 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const [itemUnitPrice, setItemUnitPrice] = useState("");
   const [savingItem, setSavingItem] = useState(false);
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
+
+  const recalculateBudgetTotalValue = async (budgetId: string) => {
+    try {
+      const { data: items, error: itemsError } = await supabase
+        .from("budget_items")
+        .select("total")
+        .eq("budget_id", budgetId);
+
+      if (itemsError) throw itemsError;
+
+      const totalValue = (items ?? []).reduce(
+        (sum, item) => sum + (item.total ?? 0),
+        0,
+      );
+
+      const { error: updateError } = await supabase
+        .from("budgets")
+        .update({ total_value: totalValue })
+        .eq("id", budgetId);
+
+      if (updateError) throw updateError;
+
+      return { totalValue, error: null };
+    } catch (err: any) {
+      return { totalValue: null, error: err.message };
+    }
+  };
 
   useEffect(() => {
     loadBudget();
@@ -117,10 +140,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       console.log("📦 Budget retornado:", response);
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({ title: "Erro", message: response.error });
 
         setLoading(false);
         return;
@@ -136,10 +156,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         setStatus(response.budget.status);
       }
     } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao carregar orçamento");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Erro ao carregar orçamento" });
 
       setLoading(false);
     } finally {
@@ -150,10 +167,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
   const handleSave = async () => {
     if (!budget) return;
     if (!title.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe um título");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe um título" });
 
       return;
     }
@@ -168,65 +182,53 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         budgetUpdate,
       );
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({ title: "Erro", message: response.error });
 
         return;
       }
 
-      setModalTitle("Sucesso");
-      setModalMessage("Orçamento salvo com sucesso.");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Sucesso", message: "Orçamento salvo com sucesso." });
 
       setEditing(false);
       loadBudget();
     } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao salvar orçamento");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Erro ao salvar orçamento" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    setModalTitle("Excluir Orçamento");
-    setModalMessage(
-      "Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.",
-    );
-    setModalConfirm(() => async () => {
-      try {
-        const response = await budgetService.deleteBudget(budgetId);
+    showModal({
+      title: "Excluir Orçamento",
+      message:
+        "Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.",
+      onCancel: () => {},
+      onConfirm: async () => {
+        try {
+          const response = await budgetService.deleteBudget(budgetId);
 
-        if (response.error) {
-          setModalTitle("Erro");
-          setModalMessage(response.error);
-          setModalConfirm(() => () => setAlertVisible(false));
-          setAlertVisible(true);
+          if (response.error) {
+            showModal({
+              title: "Erro",
+              message: response.error,
+            });
+            return;
+          }
 
-          return;
+          showModal({
+            title: "Sucesso",
+            message: "Orçamento excluído com sucesso!",
+            onConfirm: () => navigation.goBack(),
+          });
+        } catch (error) {
+          showModal({
+            title: "Erro",
+            message: "Erro ao excluir orçamento",
+          });
         }
-
-        setModalTitle("Sucesso");
-        setModalMessage("Orçamento excluído com sucesso!");
-        setModalConfirm(() => () => {
-          navigation.goBack();
-          setAlertVisible(false);
-        });
-        setAlertVisible(true);
-      } catch (error) {
-        setModalTitle("Erro");
-        setModalMessage("Erro ao excluir orçamento");
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
-      }
+      },
     });
-    setModalCancel(() => () => setAlertVisible(false));
-    setAlertVisible(true);
   };
 
   const handleStatusChange = async (newStatus: BudgetStatus) => {
@@ -239,24 +241,18 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       );
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({ title: "Erro", message: response.error });
 
         return;
       }
 
       setStatus(newStatus);
-      setModalTitle("Sucesso");
-      setModalMessage("Status atualizado com sucesso!");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Sucesso",
+        message: "Status atualizado com sucesso!",
+      });
     } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao atualizar status");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Erro ao atualizar status" });
     }
   };
 
@@ -288,28 +284,19 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
     if (!budget) return;
 
     if (!itemName.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Informe o nome do item");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Informe o nome do item" });
 
       return;
     }
     const qty = parseFloat(itemQuantity);
     const price = parseFloat(itemUnitPrice.replace(",", "."));
     if (isNaN(qty) || qty <= 0) {
-      setModalTitle("Atenção");
-      setModalMessage("Informe uma quantidade válida");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Informe uma quantidade válida" });
 
       return;
     }
     if (isNaN(price) || price < 0) {
-      setModalTitle("Atenção");
-      setModalMessage("Informe um preço válido");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Informe um preço válido" });
 
       return;
     }
@@ -347,38 +334,43 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
       // Reload items
       const items = await budgetService.fetchBudgetItemsByBudgetId(budget.id);
       setBudgetItems(items ?? []);
+
+      await recalculateBudgetTotalValue(budget.id);
+
       closeItemForm();
     } catch (err: any) {
-      setModalTitle("Erro");
-      setModalMessage(err.message || "Erro ao salvar item");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Erro",
+        message: err.message || "Erro ao salvar item",
+      });
     } finally {
       setSavingItem(false);
     }
   };
 
   const handleDeleteItem = (itemId: string) => {
-    setModalTitle("Excluir Item");
-    setModalMessage("Deseja remover este item do orçamento?");
-    setModalConfirm(() => async () => {
-      try {
-        const { error } = await supabase
-          .from("budget_items")
-          .delete()
-          .eq("id", itemId);
-        if (error) throw error;
-        setBudgetItems((prev: any[]) => prev.filter((i) => i.id !== itemId));
-        setAlertVisible(false);
-      } catch (err: any) {
-        setModalTitle("Erro");
-        setModalMessage(err.message || "Erro ao salvar item");
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
-      }
+    showModal({
+      title: "Excluir Item",
+      message: "Deseja remover este item do orçamento?",
+      onCancel: () => {},
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from("budget_items")
+            .delete()
+            .eq("id", itemId);
+          if (error) throw error;
+          setBudgetItems((prev: any[]) => prev.filter((i) => i.id !== itemId));
+
+          await recalculateBudgetTotalValue(budget.id);
+        } catch (err: any) {
+          showModal({
+            title: "Erro",
+            message: err.message || "Erro ao salvar item",
+          });
+        }
+      },
     });
-    setModalCancel(() => () => setAlertVisible(false));
-    setAlertVisible(true);
   };
 
   const formatCurrency = (value: number): string => {
@@ -451,7 +443,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
         end={{ x: 1, y: 1 }}
       />
       <View style={styles.orb1} />
-      <View style={styles.orb2} />;{/* Header */}
+      <View style={styles.orb2} />
       <BlurView intensity={20} tint="dark" style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -800,15 +792,7 @@ export default function BudgetDetailsScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         </BlurView>
       )}
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
     </View>
   );
 }

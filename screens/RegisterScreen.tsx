@@ -24,7 +24,7 @@ import {
   EyeOffIcon,
   UserIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 const userService = new UserService();
 
@@ -38,91 +38,72 @@ export default function RegisterScreen({ navigation }: any) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
 
   const validateFields = (): boolean => {
     if (!name.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe seu nome");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe seu nome" });
 
       return false;
     }
 
     if (name.trim().length < 3) {
-      setModalTitle("Atenção");
-      setModalMessage("O nome deve ter no mínimo 3 caracteres");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "O nome deve ter no mínimo 3 caracteres",
+      });
 
       return false;
     }
 
     if (!email.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe seu e-mail");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe seu e-mail" });
 
       return false;
     }
 
     if (!companyName.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe o nome da empresa");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe o nome da empresa",
+      });
 
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe um e-mail válido");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe um e-mail válido",
+      });
 
       return false;
     }
 
     if (!password.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe sua senha");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe sua senha" });
 
       return false;
     }
 
     if (password.length < 6) {
-      setModalTitle("Atenção");
-      setModalMessage("A senha deve ter no mínimo 6 caracteres");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "A senha deve ter no mínimo 6 caracteres",
+      });
 
       return false;
     }
 
     if (!confirmPassword.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, confirme sua senha");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, confirme sua senha" });
 
       return false;
     }
 
     if (password !== confirmPassword) {
-      setModalTitle("Atenção");
-      setModalMessage("As senhas não coincidem");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "As senhas não coincidem" });
 
       return false;
     }
@@ -148,32 +129,28 @@ export default function RegisterScreen({ navigation }: any) {
           response.error.includes("already registered") ||
           response.error.includes("já está cadastrado")
         ) {
-          setModalTitle("E-mail já cadastrado");
-          setModalMessage("Este e-mail já está em uso. Tente outro e-mail.");
-          setModalConfirm(() => () => setAlertVisible(false));
-          setAlertVisible(true);
+          showModal({
+            title: "E-mail já cadastrado",
+            message: "Este e-mail já está em uso. Tente outro e-mail.",
+          });
         } else {
-          setModalTitle("Erro ao criar conta");
-          setModalMessage(response.error);
-          setModalConfirm(() => () => setAlertVisible(false));
-          setAlertVisible(true);
+          showModal({ title: "Erro ao criar conta", message: response.error });
         }
       } else if (response.user) {
-        setModalTitle("Conta criada!");
-        setModalMessage(
-          "Sua conta foi criada com sucesso. Faça login para continuar.",
-        );
-        setModalConfirm(() => () => {
-          navigation.goBack();
-          setAlertVisible(false);
+        showModal({
+          title: "Conta criada com sucesso!",
+          message:
+            "Sua conta foi criada com sucesso. Faça login para continuar.",
+          onConfirm: () => {
+            navigation.goBack();
+          },
         });
-        setAlertVisible(true);
       }
     } catch (err) {
-      setModalTitle("Erro");
-      setModalMessage("Erro inesperado. Tente novamente.");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Erro",
+        message: "Erro inesperado. Tente novamente.",
+      });
     } finally {
       setLoading(false);
     }
@@ -380,15 +357,7 @@ export default function RegisterScreen({ navigation }: any) {
           </BlurView>
         </ScrollView>
       </KeyboardAvoidingView>
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
     </View>
   );
 }

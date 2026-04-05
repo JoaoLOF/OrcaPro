@@ -14,14 +14,10 @@ export interface Client {
 }
 
 export interface CreateClientData {
-  profile_id: string;
-  name: string;
+  nome: string;
   email?: string | null;
-  phone?: string | null;
-  address_state?: string | null;
-  address_city?: string | null;
-  address_street?: string | null;
-  address_number?: string | null;
+  cpf_cnpj?: string;
+  telefone?: string | null;
 }
 
 export interface UpdateClientData {

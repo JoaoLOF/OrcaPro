@@ -28,7 +28,7 @@ import {
   BackIcon,
   CheckIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 const userService = new UserService();
 
@@ -48,11 +48,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
   const [taxId, setTaxId] = useState("");
   const [documentFooter, setDocumentFooter] = useState("");
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
 
   // Paleta de cores pré-definidas
   const colorPalette = [
@@ -100,7 +96,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         setEmpresa(response.setting.company_name || "");
         setPrimaryColor(response.setting.color_primary || "#3b83f6b9");
         setLogoUrl(response.setting.logo_url || null);
-        setDocumentFooter(response.setting.document_footer || null);
+        setDocumentFooter(response.setting.document_footer || "");
       }
     } catch (error) {
       console.error("Erro ao carregar confiurações:", error);
@@ -114,10 +110,10 @@ export default function ProfileSettingsScreen({ navigation }: any) {
       await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      setModalTitle("Permissão necessária");
-      setModalMessage("Precisamos de permissão para acessar suas fotos");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Permissão necessária",
+        message: "Precisamos de permissão para acessar suas fotos",
+      });
 
       return;
     }
@@ -134,23 +130,43 @@ export default function ProfileSettingsScreen({ navigation }: any) {
     }
   };
 
+  const pickDocumentFooter = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      showModal({
+        title: "Permissão necessária",
+        message: "Precisamos de permissão para acessar suas fotos",
+      });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 1],
+      quality: 0.8,
+    });
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
     if (!userName.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe seu nome");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe seu nome",
+      });
 
       return;
     }
 
     if (!empresa.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe o nome da empresa");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe o nome da empresa",
+      });
 
       return;
     }
@@ -169,7 +185,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         company_name: empresa.trim(),
         color_primary: primaryColor,
         logo_url: logoUrl,
-        //document_footer: documentFooter,
+        document_footer: documentFooter.trim(),
       };
 
       const response = await userService.updateUserProfile(
@@ -178,27 +194,27 @@ export default function ProfileSettingsScreen({ navigation }: any) {
       );
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({
+          title: "Erro",
+          message: response.error,
+        });
 
         return;
       }
-      console.log();
-      setModalTitle("Sucesso");
-      setModalMessage("Configurações salvas com sucesso!");
-      setModalConfirm(() => async () => {
-        navigation.goBack();
-        setAlertVisible(false);
+      showModal({
+        title: "Sucesso",
+        message: "Configurações salvas com sucesso!",
+        onConfirm: async () => {
+          navigation.goBack();
+          setAlertVisible(false);
+        },
       });
-      setAlertVisible(true);
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      setModalTitle("Erro");
-      setModalMessage("Erro ao salvar configurações. Tente novamente.");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Erro",
+        message: "Erro ao salvar configurações. Tente novamente.",
+      });
     } finally {
       setSaving(false);
     }
@@ -320,7 +336,6 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                   editable={!saving}
                 />
               </View>
-
               {/* avatar */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
@@ -351,7 +366,28 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                   Recomendado: Imagem quadrada (PNG com fundo transparente)
                 </Text>
               </View>
+              {/* Rodapé do Documento */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <ImageIcon size={16} color="#94A3B8" />
+                  <Text style={styles.label}>RODAPÉ DO DOCUMENTO</Text>
+                </View>
 
+                <TextInput
+                  style={[styles.input, styles.textArea, { marginTop: 10 }]}
+                  placeholder="Escreva um texto de rodapé (ex: obrigado pela preferência!)"
+                  placeholderTextColor="#64748B"
+                  value={documentFooter}
+                  onChangeText={setDocumentFooter}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  editable={!saving}
+                />
+                <Text style={styles.hint}>
+                  Recomendado: Imagem horizontal (ex: banner 600x120px)
+                </Text>
+              </View>
               {/* Cor Principal */}
               <View style={styles.inputGroup}>
                 <View style={styles.labelRow}>
@@ -448,15 +484,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
       </BlurView>
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
     </View>
   );
 }
@@ -622,6 +650,47 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: "#94A3B8",
+  },
+  footerButton: {
+    width: "100%",
+    height: 90,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(148, 163, 184, 0.3)",
+    overflow: "hidden",
+  },
+  footerImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  footerPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
+  },
+  footerPlaceholderText: {
+    fontSize: 14,
+    color: "#94A3B8",
+  },
+  removeFooterButton: {
+    marginTop: 8,
+    alignSelf: "flex-end",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+  },
+  removeFooterText: {
+    fontSize: 12,
+    color: "#EF4444",
+    fontWeight: "600",
   },
   colorPalette: {
     flexDirection: "row",

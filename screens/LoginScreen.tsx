@@ -24,7 +24,7 @@ import {
   EyeOffIcon,
   ShieldIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 const userService = new UserService();
 
@@ -36,46 +36,36 @@ export default function LoginScreen({ navigation }: any) {
 
   const { setUser } = useAuthStore();
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
 
   const validateFields = (): boolean => {
     if (!email.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe seu e-mail");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe seu e-mail" });
 
       return false;
     }
 
     if (!password.trim()) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe seu senha");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Atenção", message: "Por favor, informe seu senha" });
 
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setModalTitle("Atenção");
-      setModalMessage("Por favor, informe um email válido");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "Por favor, informe um email válido",
+      });
 
       return false;
     }
 
     if (password.length < 6) {
-      setModalTitle("Atenção");
-      setModalMessage("A senha deve ter no mínimo 6 caracteres");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção",
+        message: "A senha deve ter no mínimo 6 caracteres",
+      });
 
       return false;
     }
@@ -103,10 +93,10 @@ export default function LoginScreen({ navigation }: any) {
 
       if (response.error) {
         console.error("❌ Erro no login:", response.error);
-        setModalTitle("Erro ao fazer login");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({
+          title: "Erro ao fazer login",
+          message: response.error,
+        });
       } else if (response.user) {
         console.log("✅ Login bem-sucedido!", response.user.email);
 
@@ -119,17 +109,17 @@ export default function LoginScreen({ navigation }: any) {
         );
       } else {
         console.warn("⚠️ Resposta sem user e sem error");
-        setModalTitle("Erro");
-        setModalMessage("Resposta inesperada do servidor");
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({
+          title: "Erro",
+          message: "Resposta inesperada do servidor",
+        });
       }
     } catch (error: any) {
       console.error("💥 Erro fatal no login:", error);
-      setModalTitle("Erro");
-      setModalMessage(error?.message || "Erro inesperado. Tente novamente.");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Erro",
+        message: error?.message || "Erro inesperado. Tente novamente.",
+      });
     } finally {
       setLoading(false);
     }
@@ -280,15 +270,7 @@ export default function LoginScreen({ navigation }: any) {
           </BlurView>
         </ScrollView>
       </KeyboardAvoidingView>
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
     </View>
   );
 }

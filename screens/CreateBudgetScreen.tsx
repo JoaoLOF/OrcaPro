@@ -32,7 +32,7 @@ import {
   SearchIcon,
   UsersIcon,
 } from "../components/Icons";
-import { AlertModal } from "../components/Componentes";
+import { AlertModal, useModal } from "../components/Componentes";
 
 const budgetService = new BudgetService();
 const clientService = new ClientService();
@@ -53,11 +53,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
   const [observations, setObservations] = useState("");
   const [items, setItems] = useState<any[]>([]);
 
-  const [modalTitle, setModalTitle] = useState<string>("");
-  const [modalMessage, setModalMessage] = useState<string>("");
-  const [modalConfirm, setModalConfirm] = useState<() => void>(() => {});
-  const [modalCancel, setModalCancel] = useState<() => void>(() => {});
-  const [alertVisible, setAlertVisible] = useState(false);
+  const { showModal, modalProps } = useModal();
 
   const currentDate = new Date().toLocaleDateString("pt-BR");
 
@@ -75,18 +71,12 @@ export default function CreateBudgetScreen({ navigation }: any) {
     try {
       const response = await clientService.fetchUserClients(user.id);
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({ title: "Erro", message: response.error });
       } else {
         setClients(response.clients);
       }
     } catch (error) {
-      setModalTitle("Erro");
-      setModalMessage("Erro ao carregar clientes");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Erro ao carregar clientes" });
     } finally {
       setLoadingClients(false);
     }
@@ -122,11 +112,14 @@ export default function CreateBudgetScreen({ navigation }: any) {
   };
 
   const removeItem = (id: string) => {
-    setModalTitle("Remover Item");
-    setModalMessage("Deseja realmente remover este item?");
-    setModalConfirm(() => setItems(items.filter((item) => item.id !== id)));
-    setModalCancel(() => () => setAlertVisible(false));
-    setAlertVisible(true);
+    showModal({
+      title: "Remover Item",
+      message: "Deseja realmente remover este item?",
+      onConfirm: () => {
+        setItems(items.filter((item) => item.id !== id));
+      },
+      onCancel: () => {},
+    });
   };
 
   const updateItem = (id: string, field: string, value: string) => {
@@ -169,28 +162,25 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
   const handleSave = async (isDraft: boolean) => {
     if (!user) {
-      setModalTitle("Erro");
-      setModalMessage("Usuário não autenticado");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({ title: "Erro", message: "Usuário não autenticado" });
 
       return;
     }
 
     if (!clientName || !clientPhone) {
-      setModalTitle("Atenção!");
-      setModalMessage("Por favor, preencha nome e telefone do cliente");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção!",
+        message: "Por favor, preencha nome e telefone do cliente",
+      });
 
       return;
     }
 
     if (!isDraft && items.length === 0) {
-      setModalTitle("Atenção!");
-      setModalMessage("Adicione pelo menos um item ao orçamento");
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Atenção!",
+        message: "Adicione pelo menos um item ao orçamento",
+      });
 
       return;
     }
@@ -216,21 +206,19 @@ export default function CreateBudgetScreen({ navigation }: any) {
       );
 
       if (response.error) {
-        setModalTitle("Erro");
-        setModalMessage(response.error);
-        setModalConfirm(() => () => setAlertVisible(false));
-        setAlertVisible(true);
+        showModal({
+          title: "Erro",
+          message: response.error,
+        });
 
         return;
       }
       navigation.navigate("Home");
     } catch (error: any) {
-      setModalTitle("Erro");
-      setModalMessage(
-        error?.message || "Erro ao salvar orçamento. Tente novamente.",
-      );
-      setModalConfirm(() => () => setAlertVisible(false));
-      setAlertVisible(true);
+      showModal({
+        title: "Erro",
+        message: error?.message || "Erro ao salvar orçamento. Tente novamente.",
+      });
     } finally {
       setSaving(false);
     }
@@ -238,15 +226,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <AlertModal
-        visible={alertVisible}
-        title={modalTitle}
-        message={modalMessage}
-        onConfirm={() => {
-          modalConfirm();
-        }}
-        onCancel={modalCancel}
-      />
+      <AlertModal {...modalProps} />
       <LinearGradient
         colors={["#0A0E27", "#1A1F3A", "#0F172A"]}
         style={styles.gradient}
