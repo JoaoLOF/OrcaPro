@@ -11,6 +11,8 @@ import HomeScreen from "../screens/HomeScreen";
 import CreateBudgetScreen from "../screens/CreateBudgetScreen";
 import CreateClientScreen from "../screens/CreateClientScreen";
 import BudgetDetailsScreen from "../screens/BudgetDetailsScreen";
+import ClientsListScreen from "../screens/ClientsListScreen";
+import ClientDetailScreen from "../screens/ClientDetailScreen";
 
 const userService = new UserService();
 
@@ -87,6 +89,8 @@ export default function Navigation() {
               component={ProfileSettingsScreen}
             />
             <Stack.Screen name="CreateClient" component={CreateClientScreen} />
+            <Stack.Screen name="ClientsList" component={ClientsListScreen} />
+            <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
           </>
         ) : (
           <>

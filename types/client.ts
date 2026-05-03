@@ -21,7 +21,7 @@ export interface CreateClientData {
 }
 
 export interface UpdateClientData {
-  name?: string;
+  nome?: string;
   email?: string | null;
   phone?: string | null;
   address_state?: string | null;
