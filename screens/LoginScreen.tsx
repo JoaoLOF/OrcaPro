@@ -1,4 +1,3 @@
-// src/screens/LoginScreen.tsx - VERSÃO FUNCIONAL COMPLETA
 import React, { useState } from "react";
 import {
   View,
@@ -79,16 +78,9 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
 
     try {
-      console.log("🔐 Iniciando login...", { email });
-
       const response = await userService.loginWithEmail({
         email: email.trim().toLowerCase(),
         password,
-      });
-
-      console.log("📩 Resposta do login:", {
-        hasUser: !!response.user,
-        hasError: !!response.error,
       });
 
       if (response.error) {
@@ -98,15 +90,8 @@ export default function LoginScreen({ navigation }: any) {
           message: response.error,
         });
       } else if (response.user) {
-        console.log("✅ Login bem-sucedido!", response.user.email);
-
         // Atualiza o estado global do usuário
         setUser(response.user);
-
-        // O Navigation detectará a mudança e redirecionará automaticamente
-        console.log(
-          "🚀 Usuário definido no store, navegação automática ativada",
-        );
       } else {
         console.warn("⚠️ Resposta sem user e sem error");
         showModal({

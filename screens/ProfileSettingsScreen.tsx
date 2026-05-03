@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Image,
   Settings,
@@ -29,8 +28,10 @@ import {
   CheckIcon,
 } from "../components/Icons";
 import { AlertModal, useModal } from "../components/Componentes";
+import { StorageService } from "../services/storageServices";
 
 const userService = new UserService();
+const storageServices = new StorageService();
 
 export default function ProfileSettingsScreen({ navigation }: any) {
   const { user } = useAuthStore();
@@ -40,7 +41,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
   // Estados do formulário
   const [userName, setUserName] = useState("");
   const [empresa, setEmpresa] = useState("");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUrl, setlogoUrl] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#3b83f6b9");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
@@ -50,7 +51,6 @@ export default function ProfileSettingsScreen({ navigation }: any) {
 
   const { showModal, modalProps } = useModal();
 
-  // Paleta de cores pré-definidas
   const colorPalette = [
     "#3b83f6b9", // Azul
     "#10b981c5", // Verde
@@ -91,42 +91,28 @@ export default function ProfileSettingsScreen({ navigation }: any) {
     setLoading(true);
     try {
       const response = await userService.fetchUserSettings(user.id);
+      console.log("🖼️ logo_url do banco:", response.setting?.logo_url);
 
       if (response.setting) {
         setEmpresa(response.setting.company_name || "");
         setPrimaryColor(response.setting.color_primary || "#3b83f6b9");
-        setLogoUrl(response.setting.logo_url || null);
+
+        // ✅ Adiciona timestamp para evitar cache
+        const savedUrl = response.setting.logo_url;
+        if (savedUrl) {
+          // Remove timestamp antigo se houver e adiciona novo
+          const cleanUrl = savedUrl.split("?")[0];
+          setlogoUrl(`${cleanUrl}?t=${Date.now()}`);
+        } else {
+          setlogoUrl(null);
+        }
+
         setDocumentFooter(response.setting.document_footer || "");
       }
     } catch (error) {
-      console.error("Erro ao carregar confiurações:", error);
+      console.error("Erro ao carregar configurações:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const pickImage = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      showModal({
-        title: "Permissão necessária",
-        message: "Precisamos de permissão para acessar suas fotos",
-      });
-
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setLogoUrl(result.assets[0].uri);
     }
   };
 
@@ -184,7 +170,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         user_id: user.id,
         company_name: empresa.trim(),
         color_primary: primaryColor,
-        logo_url: logoUrl,
+        logo_url: logoUrl ? logoUrl.split("?")[0] : null,
         document_footer: documentFooter.trim(),
       };
 
@@ -206,7 +192,6 @@ export default function ProfileSettingsScreen({ navigation }: any) {
         message: "Configurações salvas com sucesso!",
         onConfirm: async () => {
           navigation.goBack();
-          setAlertVisible(false);
         },
       });
     } catch (error) {
@@ -217,6 +202,21 @@ export default function ProfileSettingsScreen({ navigation }: any) {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    if (!user) return;
+
+    const { logoUrl: newUrl, error } = await storageServices.pickImage(user.id);
+
+    if (error) {
+      showModal({ title: "Erro", message: error });
+      return;
+    }
+
+    if (newUrl) {
+      setlogoUrl(newUrl);
     }
   };
 
@@ -344,7 +344,7 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                 </View>
                 <TouchableOpacity
                   style={styles.avatarButton}
-                  onPress={pickImage}
+                  onPress={handlePickImage}
                   activeOpacity={0.7}
                   disabled={saving}
                 >
@@ -438,16 +438,25 @@ export default function ProfileSettingsScreen({ navigation }: any) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                {logoUrl && (
-                  <Image
-                    source={{ uri: logoUrl }}
-                    style={styles.previewAvatar}
-                  />
-                )}
+                {/* ✅ Wrapper circular com overflow hidden */}
+                <View style={styles.previewAvatarWrapper}>
+                  {logoUrl ? (
+                    <Image
+                      source={{ uri: logoUrl, cache: "reload" }}
+                      style={styles.previewAvatar}
+                    />
+                  ) : (
+                    <View style={styles.previewAvatarPlaceholder}>
+                      <ImageIcon size={24} color="#FFFFFF" />
+                    </View>
+                  )}
+                </View>
+
                 <Text style={styles.previewempresa}>
                   {empresa || "Nome da Empresa"}
                 </Text>
               </LinearGradient>
+
               <View style={styles.previewBody}>
                 <Text style={styles.previewLabel}>Assim seus PDFs ficarão</Text>
               </View>
@@ -737,19 +746,36 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   previewHeader: {
-    padding: 20,
-    alignItems: "center",
+    padding: 24,
+    alignItems: "center", // ✅ centraliza tudo
+    justifyContent: "center",
+    gap: 12,
+  },
+  previewAvatarWrapper: {
+    width: 72,
+    height: 72,
+    borderRadius: 36, // ✅ círculo perfeito
+    overflow: "hidden", // ✅ corta a imagem no círculo
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.4)",
   },
   previewAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 12,
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover", // ✅ preenche sem distorcer
+  },
+  previewAvatarPlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   previewempresa: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#FFFFFF",
+    textAlign: "center", // ✅ centraliza o texto
   },
   previewBody: {
     padding: 20,

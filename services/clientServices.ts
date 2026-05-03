@@ -33,7 +33,7 @@ export class ClientService {
       const { data, error } = await supabase
         .from("clientes")
         .select("*")
-        .eq("usuario_id", userId)
+        .eq("user_id", userId)
         .order("nome", { ascending: true });
 
       if (error) throw error;

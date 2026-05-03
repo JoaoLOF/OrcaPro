@@ -69,7 +69,9 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
     setLoadingClients(true);
     try {
+      console.log("🔍 user.id sendo usado:", user.id);
       const response = await clientService.fetchUserClients(user.id);
+      console.log("📦 response completo:", JSON.stringify(response));
       if (response.error) {
         showModal({ title: "Erro", message: response.error });
       } else {
@@ -83,8 +85,8 @@ export default function CreateBudgetScreen({ navigation }: any) {
   };
 
   const selectClient = (client: Client) => {
-    setClientName(client.name);
-    setClientPhone(client.phone || "");
+    setClientName(client.nome);
+    setClientPhone(client.telefone || "");
     setClientEmail(client.email || "");
     setShowClientModal(false);
     setSearchQuery("");
@@ -92,10 +94,10 @@ export default function CreateBudgetScreen({ navigation }: any) {
 
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (client.email &&
         client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (client.phone && client.phone.includes(searchQuery)),
+      (client.telefone && client.telefone.includes(searchQuery)),
   );
 
   const addItem = () => {
@@ -390,8 +392,8 @@ export default function CreateBudgetScreen({ navigation }: any) {
                   style={[styles.input, styles.itemInput]}
                   placeholder="Nome do serviço/produto"
                   placeholderTextColor="#64748B"
-                  value={item.name}
-                  onChangeText={(value) => updateItem(item.id, "name", value)}
+                  value={item.nome}
+                  onChangeText={(value) => updateItem(item.id, "nome", value)}
                   editable={!saving}
                 />
 
@@ -498,7 +500,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
       <BlurView intensity={20} tint="dark" style={styles.footer}>
         <TouchableOpacity
           style={[styles.primaryButtonWrapper, saving && styles.buttonDisabled]}
-          onPress={() => handleSave(false)}
+          onPress={() => handleSave(true)}
           disabled={saving}
           activeOpacity={0.8}
         >
@@ -518,17 +520,6 @@ export default function CreateBudgetScreen({ navigation }: any) {
             )}
           </LinearGradient>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.secondaryButton, saving && styles.buttonDisabled]}
-          onPress={() => handleSave(true)}
-          disabled={saving}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.secondaryButtonText}>
-            💾 Salvar como Rascunho
-          </Text>
-        </TouchableOpacity>
       </BlurView>
 
       {/* Modal de Seleção de Cliente */}
@@ -539,7 +530,7 @@ export default function CreateBudgetScreen({ navigation }: any) {
         onRequestClose={() => setShowClientModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint="dark" style={styles.modalBlur}>
+          <BlurView intensity={10} tint="dark" style={styles.modalBlur}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Selecionar Cliente</Text>
@@ -599,21 +590,10 @@ export default function CreateBudgetScreen({ navigation }: any) {
                       activeOpacity={0.7}
                     >
                       <View style={styles.clientItemContent}>
-                        <Text style={styles.clientItemName}>{item.name}</Text>
-                        {item.phone && (
-                          <Text style={styles.clientItemDetail}>
-                            {item.phone}
-                          </Text>
-                        )}
-                        {item.email && (
-                          <Text style={styles.clientItemDetail}>
-                            {item.email}
-                          </Text>
-                        )}
+                        <Text style={styles.clientItemName}>{item.nome}</Text>
                       </View>
                     </TouchableOpacity>
                   )}
-                  style={styles.clientList}
                   showsVerticalScrollIndicator={false}
                 />
               )}
@@ -927,7 +907,7 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, .5)",
     justifyContent: "center",
     padding: 24,
   },
@@ -976,7 +956,7 @@ const styles = StyleSheet.create({
     color: "#E2E8F0",
   },
   loadingContainer: {
-    padding: 40,
+    padding: 20,
     alignItems: "center",
   },
   emptyContainer: {
@@ -1002,13 +982,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#60A5FA",
   },
-  clientList: {
-    maxHeight: 400,
-  },
+
   clientItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    borderBottomColor: "rgba(255, 255, 255, 0.1 )",
   },
   clientItemContent: {
     gap: 4,

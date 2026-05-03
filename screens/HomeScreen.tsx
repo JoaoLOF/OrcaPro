@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  Alert,
+  Modal,
+  Pressable,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import Svg, { Path, Circle, Rect } from "react-native-svg";
+import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { useAuthStore } from "../stores/authStores";
 import { UserService } from "../services/userService";
 import { Budget, BudgetStatus } from "../types/budget";
@@ -34,6 +35,8 @@ type RootStackParamList = {
   Home: undefined;
   CreateBudget: undefined;
   BudgetDetails: { budgetId: string };
+  ProfileSettings: undefined;
+  ClientsList: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -48,13 +51,178 @@ interface Props {
 const userService = new UserService();
 const budgetService = new BudgetService();
 
+// ---- Ícones inline para o menu ----
+const GearIcon = ({ size = 22, color = "#FFFFFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const UserIcon = ({ size = 20, color = "#94A3B8" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
+    <Path
+      d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+const ClientIcon = ({ size = 20, color = "#94A3B8" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="9" cy="7" r="4" stroke={color} strokeWidth="2" />
+    <Path
+      d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const ExitIcon = ({ size = 20, color = "#EF4444" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+// ---- Componente do Menu Dropdown ----
+interface DropdownMenuProps {
+  visible: boolean;
+  onClose: () => void;
+  anchorPosition: { top: number; right: number };
+  onProfileSettings: () => void;
+  onClientsList: () => void;
+  onLogout: () => void;
+}
+
+function DropdownMenu({
+  visible,
+  onClose,
+  anchorPosition,
+  onProfileSettings,
+  onClientsList,
+  onLogout,
+}: DropdownMenuProps) {
+  if (!visible) return null;
+
+  const menuItems = [
+    {
+      label: "Configurações",
+      icon: <UserIcon size={18} color="#94A3B8" />,
+      onPress: onProfileSettings,
+      danger: false,
+    },
+    {
+      label: "Clientes",
+      icon: <ClientIcon size={18} color="#94A3B8" />,
+      onPress: onClientsList,
+      danger: false,
+    },
+    {
+      label: "Sair",
+      icon: <ExitIcon size={18} color="#EF4444" />,
+      onPress: onLogout,
+      danger: true,
+    },
+  ];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable style={styles.menuOverlay} onPress={onClose}>
+        {/* Seta apontando para o botão */}
+        <View
+          style={[
+            styles.menuArrow,
+            { top: anchorPosition.top - 6, right: anchorPosition.right + 11 },
+          ]}
+        />
+        <Pressable
+          style={[
+            styles.menuContainer,
+            { top: anchorPosition.top, right: anchorPosition.right },
+          ]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <BlurView intensity={40} tint="dark" style={styles.menuBlur}>
+            {menuItems.map((item, index) => (
+              <React.Fragment key={item.label}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onClose();
+                    setTimeout(item.onPress, 150);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.menuItemIcon}>{item.icon}</View>
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      item.danger && styles.menuItemTextDanger,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+                {index < menuItems.length - 1 && (
+                  <View style={styles.menuDivider} />
+                )}
+              </React.Fragment>
+            ))}
+          </BlurView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ---- Tela Principal ----
 export default function HomeScreen({ navigation }: Props) {
   const { user, logout: logoutStore } = useAuthStore();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<{ name: string } | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState({ top: 0, right: 0 });
 
+  const gearButtonRef = useRef<TouchableOpacity>(null);
   const { showModal, modalProps } = useModal();
 
   const loadBudgets = async (isRefreshing = false) => {
@@ -106,18 +274,19 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleCreateBudget = () => {
-    console.log("🚀 Navegando para CreateBudget...");
     navigation.navigate("CreateBudget");
   };
 
   const handleBudgetPress = (budgetId: string) => {
-    console.log("📄 Navegando para BudgetDetails:", budgetId);
     navigation.navigate("BudgetDetails", { budgetId });
   };
 
   const handleSettings = () => {
-    console.log("⚙️ Navegando para ProfileSettings...");
     navigation.navigate("ProfileSettings");
+  };
+
+  const handleClientsList = () => {
+    navigation.navigate("ClientsList");
   };
 
   const handleLogout = async () => {
@@ -129,6 +298,16 @@ export default function HomeScreen({ navigation }: Props) {
         logoutStore();
       },
       onCancel: () => {},
+    });
+  };
+
+  const handleGearPress = () => {
+    gearButtonRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuAnchor({
+        top: y + height + 8,
+        right: x - width - 135,
+      });
+      setMenuVisible(true);
     });
   };
 
@@ -285,22 +464,16 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Olá, {profile?.name}</Text>
             <Text style={styles.subtitle}>Gerencie seus orçamentos</Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={handleSettings}
-              activeOpacity={0.7}
-            >
-              <SettingsIcon size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <LogoutIcon size={20} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
+
+          {/* Botão engrenagem único */}
+          <TouchableOpacity
+            ref={gearButtonRef}
+            style={[styles.gearButton, menuVisible && styles.gearButtonActive]}
+            onPress={handleGearPress}
+            activeOpacity={0.7}
+          >
+            <GearIcon size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </BlurView>
 
@@ -342,6 +515,17 @@ export default function HomeScreen({ navigation }: Props) {
           </LinearGradient>
         </TouchableOpacity>
       )}
+
+      {/* Dropdown Menu */}
+      <DropdownMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        anchorPosition={menuAnchor}
+        onProfileSettings={handleSettings}
+        onClientsList={handleClientsList}
+        onLogout={handleLogout}
+      />
+
       <AlertModal {...modalProps} />
     </View>
   );
@@ -414,11 +598,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#94A3B8",
   },
-  headerActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  settingsButton: {
+  // Botão de engrenagem
+  gearButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
@@ -428,16 +609,67 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  logoutButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+  gearButtonActive: {
+    backgroundColor: "rgba(59, 130, 246, 0.45)",
+    borderColor: "rgba(59, 130, 246, 0.8)",
   },
+  // Menu Dropdown
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  menuArrow: {
+    position: "absolute",
+    width: 12,
+    height: 12,
+    backgroundColor: "rgba(22, 30, 58, 0.97)",
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    transform: [{ rotate: "45deg" }],
+    zIndex: 10,
+  },
+  menuContainer: {
+    position: "absolute",
+    width: 220,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  menuBlur: {
+    paddingVertical: 6,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuItemIcon: {
+    width: 28,
+    alignItems: "center",
+    marginRight: 10,
+  },
+  menuItemText: {
+    fontSize: 15,
+    color: "#E2E8F0",
+    fontWeight: "500",
+  },
+  menuItemTextDanger: {
+    color: "#EF4444",
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginHorizontal: 12,
+  },
+  // Listas
   listContent: {
     padding: 24,
   },
@@ -577,7 +809,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-
   fab: {
     width: 64,
     height: 64,
